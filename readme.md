@@ -1,58 +1,117 @@
-# Jekyll Test Harness
+# jekyll-test-harness
 
-A test harness for testing Jekyll plugins. The goal is that you can incorporate this gem as a development dependency, enabling methods in your specs that allow for testing the plugin in a test Jekyll environment.
+`jekyll-test-harness` is a reusable integration harness for Jekyll plugin authors. It builds a real temporary Jekyll site in your RSpec examples, loads your plugin code, and lets you assert against both in-memory Jekyll objects and generated output files.
 
-This gem uses RSpec integration tests that build a miniature Jekyll site for each example. The goal is to exercise the real Jekyll pipeline (including hooks and Liquid rendering) while keeping every test isolated and repeatable.
+## Why this gem exists
 
-## How the harness works
+- Plugin specs should exercise the true Jekyll build pipeline.
+- Temporary sites should be isolated and deterministic.
+- Shared harness logic should stay generic, while plugin fixtures stay in each plugin project.
 
-The test harness lives in `spec/support/jekyll/site_harness.rb` and is intentionally generic to keep it suitable for reuse in other Jekyll plugin gems later. The shared spec setup now lives in `spec/support/spec_helper.rb`.
+## Minimal setup
 
-Key points:
-
-- `JekyllSpecSupport::SiteHarness.with_site` creates a fresh temporary site directory, writes `_config.yml` and any supplied files, runs a full `Jekyll::Site#process`, and then cleans up.
-- Each example receives the built `site` plus a simple paths helper for reading files from the destination folder.
-- Test files are expressed as nested hashes so specs stay compact and avoid large fixture trees.
-- The harness defaults are minimal and plugin-agnostic, so plugin-specific config and files are supplied by each spec.
-
-## Writing new tests
-
-Guidelines for extending the suite:
-
-- Prefer collection documents (for example, `_posts` or a custom collection) because the plugin hooks are registered on `:documents`.
-- Keep each example self-contained by supplying its own config and files, then use `JekyllSpecSupport::SiteHarness.merge_data` to layer in overrides without repeating boilerplate.
-- Assert against the rendered output and the in-memory `page.data['assets']` structure so both the hooks and the Liquid tag are covered.
-
-## Notes on future abstraction
-
-The harness is written with extraction in mind:
-
-- It does not assume any plugin-specific config.
-- It uses a small public API (`with_site`, `merge_data`) that can be moved into a shared gem with minimal change.
-
-If multiple plugins adopt the same pattern, consider extracting to a dedicated test harness gem (for example, `jekyll-plugin-testkit`). That would centralise maintenance and let each plugin keep its specs focused on behaviour rather than boilerplate.
-
-## Reusing the harness in a new Jekyll plugin
-
-The Jekyll harness is designed to be portable. To use it in a different Jekyll plugin gem:
-
-1. Copy the entire `spec/support/jekyll` folder into the new gem at `spec/support/jekyll`.
-2. Copy `spec/support/spec_helper.rb` and adjust the `require 'jekyll-asset_manager'` line to the new gem’s entrypoint.
-3. If you do not want any plugin-specific helpers, remove `spec/support/asset_manager_support.rb` and the `config.include` lines that reference `AssetManagerSpecSupport` in `spec/support/spec_helper.rb`.
-4. In each spec file, require the shared helper with:
-   ```ruby
-   require_relative 'support/spec_helper'
-   ```
-
-From there you can build sites with:
+### 1. Add dependencies
 
 ```ruby
-JekyllSpecSupport::SiteHarness.with_site(
-  config: { 'assets' => { /* plugin config */ } },
-  files:  { '_posts' => { '2026-01-01-demo.md' => '---\nlayout: default\n---\nHello' } }
-) do |site, paths|
-  # assertions here
+# Gemfile
+group :test do
+  gem 'rspec', '~> 3.13'
+  gem 'jekyll-test-harness'
 end
 ```
 
-If you need reusable fixtures or helpers for the new plugin, define them in a separate support file (for example, `spec/support/<plugin>_support.rb`) and include them from `spec/support/spec_helper.rb`. This keeps the Jekyll harness clean and reusable across plugins.
+### 2. Configure RSpec
+
+```ruby
+# spec/spec_helper.rb
+require 'jekyll_test_harness/rspec'
+require 'my_plugin'
+
+RSpec.configure do |config|
+  Jekyll::TestHarness::RSpec.configure(config)
+end
+```
+
+### 3. Build a site in a spec
+
+```ruby
+RSpec.describe 'my plugin integration' do
+  it 'renders expected output' do
+    files = {
+      '_layouts' => {
+        'default.html' => '<html><body>{{ content }}</body></html>'
+      },
+      '_posts' => {
+        '2026-01-01-demo.md' => "---\nlayout: default\npermalink: /docs/demo.html\n---\nHello\n"
+      }
+    }
+
+    build_jekyll_site(files: files) do |site, paths|
+      post = site.collections.fetch('posts').docs.first
+      html = paths.read_output('docs/demo.html')
+      expect(post).not_to be_nil
+      expect(html).to include('Hello')
+    end
+  end
+end
+```
+
+## Core API reference
+
+### `Jekyll::TestHarness::SiteHarness.with_site`
+
+```ruby
+Jekyll::TestHarness::SiteHarness.with_site(
+  config: {},
+  files: {},
+  base_config: {},
+  base_files: {},
+  default_scaffold: true,
+  keep_site_on_failure: false
+) do |site, paths|
+  # assertions
+end
+```
+
+Default config baseline:
+
+- `'source'` and `'destination'` are set to temporary directories.
+- `'quiet' => true`
+- `'incremental' => false`
+
+Default scaffold (`default_scaffold: true`):
+
+- `_layouts/default.html`
+- `index.md`
+
+### `Jekyll::TestHarness::SiteHarness.merge_data(base, overrides)`
+
+Deep-merges hashes recursively. Scalar and array values are replaced by `overrides`.
+
+### Paths helper
+
+The `paths` object yielded from `with_site` exposes:
+
+- `source`
+- `destination`
+- `source_path(relative_path)`
+- `output_path(relative_path)`
+- `read_source(relative_path)`
+- `read_output(relative_path)`
+
+### RSpec helper DSL
+
+When configured via `Jekyll::TestHarness::RSpec.configure(config)`, specs can call:
+
+- `build_jekyll_site(...) { |site, paths| ... }`
+- `merge_jekyll_data(base, overrides)`
+
+## Plugin-specific fixtures
+
+Keep plugin-specific helpers, matchers, and fixtures in your plugin project (for example under `spec/support` and `spec/fixtures`). This gem should remain plugin-agnostic.
+
+## Troubleshooting
+
+- If build logs are too noisy, keep the default `'quiet' => true`.
+- If a build fails, `SiteBuildError` includes source/destination paths and a config snapshot.
+- Use `keep_site_on_failure: true` to retain temporary files for local debugging.
