@@ -1,0 +1,20 @@
+# Essential
+.git
+.env
+.bundle
+
+# OS
+*.lnk
+*.db
+*.ini
+.DS_Store
+
+# Temp/cache/logs
+*.log
+**/tmp
+**/cache
+**/logs
+
+# Settings
+.vscode
+agents.md
