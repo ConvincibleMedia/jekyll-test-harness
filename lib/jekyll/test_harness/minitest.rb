@@ -4,8 +4,8 @@ require_relative 'site_harness'
 
 module Jekyll
 	module TestHarness
-		# Adds convenience helpers to RSpec without hiding SiteHarness behaviour.
-		module RSpec
+		# Adds convenience helpers for Minitest without hiding SiteHarness behaviour.
+		module Minitest
 			# Exposes helper methods that delegate to the core harness API.
 			module Helpers
 				# Builds a temporary site using the core SiteHarness API.
@@ -29,23 +29,23 @@ module Jekyll
 
 			module_function
 
-			# Wires harness helpers into an RSpec configuration instance.
-			def configure(configuration = default_configuration)
-				unless configuration.respond_to?(:include)
-					raise ArgumentError, 'RSpec configuration must respond to #include.'
+			# Wires harness helpers into a Minitest test case class.
+			def configure(test_case_class = default_test_case_class)
+				unless test_case_class.respond_to?(:include)
+					raise ArgumentError, 'Minitest test case class must respond to #include.'
 				end
 
-				configuration.include(Helpers)
-				configuration
+				test_case_class.include(Helpers)
+				test_case_class
 			end
 
-			# Looks up the default RSpec configuration and raises a clear usage error if missing.
-			def default_configuration
-				return ::RSpec.configuration if defined?(::RSpec) && ::RSpec.respond_to?(:configuration)
+			# Looks up the default Minitest test case class and raises a clear usage error if missing.
+			def default_test_case_class
+				return ::Minitest::Test if defined?(::Minitest::Test)
 
-				raise NameError, "RSpec is not available. Require 'rspec' before calling Jekyll::TestHarness::RSpec.configure."
+				raise NameError, "Minitest::Test is not defined. Require 'minitest/autorun' or pass a test case class to configure."
 			end
-			private_class_method :default_configuration
+			private_class_method :default_test_case_class
 		end
 	end
 end

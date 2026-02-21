@@ -22,6 +22,21 @@ RSpec.describe Jekyll::TestHarness::Paths do
 		end
 	end
 
+	it 'allows normalised relative paths that remain within the root' do
+		Jekyll::TestHarness::TemporaryDirectory.with_dir do |temporary_directory|
+			source = File.join(temporary_directory, 'site')
+			destination = File.join(temporary_directory, '_site')
+			FileUtils.mkdir_p(File.join(source, 'docs'))
+			FileUtils.mkdir_p(File.join(destination, 'docs'))
+			File.write(File.join(source, 'docs', 'index.md'), 'source')
+			File.write(File.join(destination, 'docs', 'index.html'), 'output')
+			paths = described_class.new(source: source, destination: destination)
+
+			expect(paths.source_path(File.join('.', 'docs', '.', 'index.md'))).to eq(File.join(source, 'docs', 'index.md'))
+			expect(paths.output_path(File.join('docs', '.', 'index.html'))).to eq(File.join(destination, 'docs', 'index.html'))
+		end
+	end
+
 	it 'rejects paths that escape the source or destination root' do
 		Jekyll::TestHarness::TemporaryDirectory.with_dir do |temporary_directory|
 			source = File.join(temporary_directory, 'site')
@@ -32,6 +47,15 @@ RSpec.describe Jekyll::TestHarness::Paths do
 
 			expect { paths.source_path('../outside.txt') }.to raise_error(ArgumentError)
 			expect { paths.output_path('../outside.html') }.to raise_error(ArgumentError)
+		end
+	end
+
+	it 'rejects absolute unix and windows-style paths' do
+		Jekyll::TestHarness::TemporaryDirectory.with_dir do |temporary_directory|
+			paths = described_class.new(source: File.join(temporary_directory, 'site'), destination: File.join(temporary_directory, '_site'))
+
+			expect { paths.source_path('/etc/passwd') }.to raise_error(ArgumentError)
+			expect { paths.output_path('C:/Windows/system.ini') }.to raise_error(ArgumentError)
 		end
 	end
 end

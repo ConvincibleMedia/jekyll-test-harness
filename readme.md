@@ -1,12 +1,13 @@
 # jekyll-test-harness
 
-`jekyll-test-harness` is a reusable integration harness for Jekyll plugin authors. It builds a real temporary Jekyll site in your RSpec examples, loads your plugin code, and lets you assert against both in-memory Jekyll objects and generated output files.
+`jekyll-test-harness` is a reusable integration harness for Jekyll plugin authors. It builds a real temporary Jekyll site in your tests, loads your plugin code, and lets you assert against both in-memory Jekyll objects and generated output files.
 
 ## Why this gem exists
 
 - Plugin specs should exercise the true Jekyll build pipeline.
 - Temporary sites should be isolated and deterministic.
 - Shared harness logic should stay generic, while plugin fixtures stay in each plugin project.
+- You can use either RSpec or Minitest; this gem does not assume one framework.
 
 ## Minimal setup
 
@@ -20,10 +21,11 @@ group :test do
 end
 ```
 
-### 2. Configure RSpec
+### 2. Configure RSpec (load order matters)
 
 ```ruby
 # spec/spec_helper.rb
+require 'rspec'
 require 'jekyll_test_harness/rspec'
 require 'my_plugin'
 
@@ -31,6 +33,21 @@ RSpec.configure do |config|
   Jekyll::TestHarness::RSpec.configure(config)
 end
 ```
+
+### 2b. Configure Minitest (load order matters)
+
+```ruby
+# test/test_helper.rb
+require 'minitest/autorun'
+require 'jekyll_test_harness/minitest'
+require 'my_plugin'
+
+Jekyll::TestHarness::Minitest.configure
+```
+
+`Jekyll::TestHarness::RSpec.configure` expects RSpec to be available.
+`Jekyll::TestHarness::Minitest.configure` expects `Minitest::Test` to be available.
+If your test runner setup is custom, load your framework first, then call the harness configure method.
 
 ### 3. Build a site in a spec
 
@@ -102,6 +119,13 @@ The `paths` object yielded from `with_site` exposes:
 ### RSpec helper DSL
 
 When configured via `Jekyll::TestHarness::RSpec.configure(config)`, specs can call:
+
+- `build_jekyll_site(...) { |site, paths| ... }`
+- `merge_jekyll_data(base, overrides)`
+
+### Minitest helper DSL
+
+When configured via `Jekyll::TestHarness::Minitest.configure`, tests can call:
 
 - `build_jekyll_site(...) { |site, paths| ... }`
 - `merge_jekyll_data(base, overrides)`

@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
 	spec.email = ['development@convincible.media']
 
 	spec.summary = 'Reusable integration test harness for Jekyll plugin development.'
-	spec.description = 'Builds isolated temporary Jekyll sites for plugin RSpec suites and exposes optional RSpec helper DSL.'
+	spec.description = 'Builds isolated temporary Jekyll sites for plugin RSpec and Minitest suites with optional framework helper DSL modules.'
 	spec.homepage = 'https://github.com/ConvincibleMedia/jekyll-test-harness'
 	spec.license = 'LGPL-3.0-or-later'
 

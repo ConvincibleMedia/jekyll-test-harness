@@ -36,4 +36,28 @@ RSpec.describe 'Fixture plugin integration' do
 			expect(html).to include('Fixture post body.')
 		end
 	end
+
+	it 'exposes path helpers for source and generated output locations' do
+		files = {
+			'_layouts' => {
+				'default.html' => '<html><body>{{ content }}</body></html>'
+			},
+			'_posts' => {
+				'2026-01-02-paths.md' => <<~MARKDOWN
+					---
+					layout: default
+					permalink: /docs/paths.html
+					---
+					Path helpers body.
+				MARKDOWN
+			}
+		}
+
+		build_jekyll_site(files: files) do |_site, paths|
+			expect(paths.source_path('_posts/2026-01-02-paths.md')).to end_with(File.join('_posts', '2026-01-02-paths.md'))
+			expect(paths.output_path('docs/paths.html')).to end_with(File.join('docs', 'paths.html'))
+			expect(paths.read_source('_posts/2026-01-02-paths.md')).to include('Path helpers body.')
+			expect(paths.read_output('docs/paths.html')).to include('Path helpers body.')
+		end
+	end
 end
