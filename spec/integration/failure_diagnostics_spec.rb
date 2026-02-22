@@ -24,7 +24,7 @@ RSpec.describe 'Failure diagnostics' do
 			suppress_expected_build_stderr do
 				build_jekyll_site(files: files) { |_site, _paths| }
 			end
-		end.to raise_error(Jekyll::TestHarness::SiteBuildError) { |error|
+		end.to raise_error(JekyllTestHarness::SiteBuildError) { |error|
 			expect(error.message).to include('Jekyll site build failed:')
 			expect(error.message).to include('keep_site_on_failure: true')
 			expect(error.source_path).not_to be_nil
@@ -46,7 +46,7 @@ RSpec.describe 'Failure diagnostics' do
 			suppress_expected_build_stderr do
 				build_jekyll_site(files: files, keep_site_on_failure: true) { |_site, _paths| }
 			end
-		end.to raise_error(Jekyll::TestHarness::SiteBuildError) { |error|
+		end.to raise_error(JekyllTestHarness::SiteBuildError) { |error|
 			temporary_site_root = File.dirname(error.source_path)
 		}
 
@@ -54,3 +54,4 @@ RSpec.describe 'Failure diagnostics' do
 		FileUtils.remove_entry(temporary_site_root)
 	end
 end
+

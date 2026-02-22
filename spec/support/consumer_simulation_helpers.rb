@@ -76,11 +76,11 @@ module ConsumerSimulationHelpers
 
 				require 'bundler/setup'
 				require 'rspec'
-				require 'jekyll_test_harness/rspec'
+				require 'jekyll_test_harness'
 				require_relative '../lib/consumer_fixture_plugin'
 
 				RSpec.configure do |config|
-					Jekyll::TestHarness::RSpec.configure(config)
+					JekyllTestHarness.install!(:rspec, rspec_configuration: config)
 				end
 			RUBY
 		)
@@ -139,10 +139,10 @@ module ConsumerSimulationHelpers
 
 				require 'bundler/setup'
 				require 'minitest/autorun'
-				require 'jekyll_test_harness/minitest'
+				require 'jekyll_test_harness'
 				require_relative '../lib/consumer_fixture_plugin'
 
-				Jekyll::TestHarness::Minitest.configure
+				JekyllTestHarness.install!(:minitest)
 			RUBY
 		)
 
@@ -188,3 +188,4 @@ module ConsumerSimulationHelpers
 		write_file(File.join(project_root, 'test', 'integration_test.rb'), test_body)
 	end
 end
+

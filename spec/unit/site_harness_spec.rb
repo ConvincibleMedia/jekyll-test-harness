@@ -4,7 +4,7 @@ require_relative '../spec_helper'
 require 'stringio'
 require 'yaml'
 
-RSpec.describe Jekyll::TestHarness::SiteHarness do
+RSpec.describe JekyllTestHarness::SiteHarness do
 	# Silences expected Liquid parse noise from intentionally-invalid fixtures in this spec file.
 	def suppress_expected_build_stderr
 		original_stderr = $stderr
@@ -89,7 +89,7 @@ RSpec.describe Jekyll::TestHarness::SiteHarness do
 		it 'raises a harness-specific error when no block is supplied' do
 			expect do
 				described_class.with_site
-			end.to raise_error(Jekyll::TestHarness::MissingBlockError)
+			end.to raise_error(JekyllTestHarness::MissingBlockError)
 		end
 
 		it 'writes default scaffold files by default' do
@@ -174,7 +174,7 @@ RSpec.describe Jekyll::TestHarness::SiteHarness do
 		it 'yields a built Jekyll::Site and a Paths helper' do
 			described_class.with_site do |site, paths|
 				expect(site).to be_a(Jekyll::Site)
-				expect(paths).to be_a(Jekyll::TestHarness::Paths)
+				expect(paths).to be_a(JekyllTestHarness::Paths)
 			end
 		end
 
@@ -220,7 +220,7 @@ RSpec.describe Jekyll::TestHarness::SiteHarness do
 				suppress_expected_build_stderr do
 					described_class.with_site(files: { '_layouts' => { 'default.html' => '{% if %}' } }) { |_site, _paths| }
 				end
-			end.to raise_error(Jekyll::TestHarness::SiteBuildError) { |error|
+			end.to raise_error(JekyllTestHarness::SiteBuildError) { |error|
 				temporary_root = File.dirname(error.source_path)
 			}
 
@@ -234,7 +234,7 @@ RSpec.describe Jekyll::TestHarness::SiteHarness do
 				suppress_expected_build_stderr do
 					described_class.with_site(keep_site_on_failure: true, files: { '_layouts' => { 'default.html' => '{% if %}' } }) { |_site, _paths| }
 				end
-			end.to raise_error(Jekyll::TestHarness::SiteBuildError) { |error|
+			end.to raise_error(JekyllTestHarness::SiteBuildError) { |error|
 				temporary_root = File.dirname(error.source_path)
 			}
 
@@ -250,7 +250,7 @@ RSpec.describe Jekyll::TestHarness::SiteHarness do
 				suppress_expected_build_stderr do
 					described_class.with_site(config: config, files: files) { |_site, _paths| }
 				end
-			end.to raise_error(Jekyll::TestHarness::SiteBuildError) { |error|
+			end.to raise_error(JekyllTestHarness::SiteBuildError) { |error|
 				expect(error.source_path).to be_a(String)
 				expect(error.destination_path).to be_a(String)
 				expect(error.config_snapshot.dig('my_plugin', 'mode')).to eq('diagnostic')
@@ -259,3 +259,4 @@ RSpec.describe Jekyll::TestHarness::SiteHarness do
 		end
 	end
 end
+

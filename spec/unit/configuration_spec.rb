@@ -2,7 +2,7 @@
 
 require_relative '../spec_helper'
 
-RSpec.describe Jekyll::TestHarness::Configuration do
+RSpec.describe JekyllTestHarness::Configuration do
 	describe '.default_config' do
 		it 'provides deterministic baseline keys and values' do
 			config = described_class.default_config(source: '/tmp/source', destination: '/tmp/destination')
@@ -35,3 +35,4 @@ RSpec.describe Jekyll::TestHarness::Configuration do
 		end
 	end
 end
+

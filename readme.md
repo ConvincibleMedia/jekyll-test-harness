@@ -1,55 +1,53 @@
-# jekyll-test-harness
+# Jekyll Test Harness
 
-`jekyll-test-harness` is a reusable integration harness for Jekyll plugin authors. It builds a real temporary Jekyll site in your tests, loads your plugin code, and lets you assert against both in-memory Jekyll objects and generated output files.
+Simple integration testing for Jekyll plugins. Extends RSpec or Minitest with helper methods for building a real Jekyll site, with your plugin available, to test how it actually runs within Jekyll. The generated sites are wiped for each test, and optionally kept on failure.
 
-## Why this gem exists
-
-- Plugin specs should exercise the true Jekyll build pipeline.
-- Temporary sites should be isolated and deterministic.
-- Shared harness logic should stay generic, while plugin fixtures stay in each plugin project.
-- You can use either RSpec or Minitest; this gem does not assume one framework.
-
-## Minimal setup
-
-### 1. Add dependencies
+## Setup
 
 ```ruby
 # Gemfile
 group :test do
-  gem 'rspec', '~> 3.13'
   gem 'jekyll-test-harness'
+  gem 'rspec', '~> 3.13' # if using RSpec
+  gem 'minitest', '>= 5.0' # if using Minitest
 end
 ```
 
-### 2. Configure RSpec (load order matters)
+Load the harness into RSpec:
 
 ```ruby
 # spec/spec_helper.rb
 require 'rspec'
-require 'jekyll_test_harness/rspec'
+require 'jekyll_test_harness'
 require 'my_plugin'
 
 RSpec.configure do |config|
-  Jekyll::TestHarness::RSpec.configure(config)
+  JekyllTestHarness.install!(rspec_configuration: config)
 end
 ```
 
-### 2b. Configure Minitest (load order matters)
+Load the harness into Minitest:
 
 ```ruby
 # test/test_helper.rb
 require 'minitest/autorun'
-require 'jekyll_test_harness/minitest'
+require 'jekyll_test_harness'
 require 'my_plugin'
 
-Jekyll::TestHarness::Minitest.configure
+JekyllTestHarness.install!
 ```
 
-`Jekyll::TestHarness::RSpec.configure` expects RSpec to be available.
-`Jekyll::TestHarness::Minitest.configure` expects `Minitest::Test` to be available.
-If your test runner setup is custom, load your framework first, then call the harness configure method.
+`JekyllTestHarness.install!` auto-detects which framework you are using, however if there is any ambiguity, it can be configured explicitly with its first parameter, being either `:rspec` or `:minitest`.
 
-### 3. Build a site in a spec
+
+## Test DSL
+
+After calling `install!`, your examples/tests get:
+
+- `build_jekyll_site(...) { |site, paths| ... }`
+- `merge_jekyll_data(base, overrides)`
+
+Example:
 
 ```ruby
 RSpec.describe 'my plugin integration' do
@@ -64,6 +62,8 @@ RSpec.describe 'my plugin integration' do
     }
 
     build_jekyll_site(files: files) do |site, paths|
+      # site = the actual in-memory Jekyll site just built
+      # paths = 
       post = site.collections.fetch('posts').docs.first
       html = paths.read_output('docs/demo.html')
       expect(post).not_to be_nil
@@ -73,12 +73,13 @@ RSpec.describe 'my plugin integration' do
 end
 ```
 
-## Core API reference
+### `build_jekyll_site`
 
-### `Jekyll::TestHarness::SiteHarness.with_site`
+Builds a fresh throwaway Jekyll site for one test example, runs a real Jekyll build (`Jekyll::Site#process`), then yield both the built `site` object and a `paths` object representing the files built.
+
 
 ```ruby
-Jekyll::TestHarness::SiteHarness.with_site(
+build_jekyll_site(
   config: {},
   files: {},
   base_config: {},
@@ -92,7 +93,7 @@ end
 
 Default config baseline:
 
-- `'source'` and `'destination'` are set to temporary directories.
+- `'source'` and `'destination'` are temporary paths
 - `'quiet' => true`
 - `'incremental' => false`
 
@@ -101,13 +102,13 @@ Default scaffold (`default_scaffold: true`):
 - `_layouts/default.html`
 - `index.md`
 
-### `Jekyll::TestHarness::SiteHarness.merge_data(base, overrides)`
+### `merge_jekyll_data(base, overrides)`
 
-Deep-merges hashes recursively. Scalar and array values are replaced by `overrides`.
+A simple implementation of a deep hash merge is provided as a useful helper. This could be used to vary a base set of files or config, for instance.
 
-### Paths helper
+### `paths` Object
 
-The `paths` object yielded from `with_site` exposes:
+The yielded `paths` object exposes:
 
 - `source`
 - `destination`
@@ -115,27 +116,3 @@ The `paths` object yielded from `with_site` exposes:
 - `output_path(relative_path)`
 - `read_source(relative_path)`
 - `read_output(relative_path)`
-
-### RSpec helper DSL
-
-When configured via `Jekyll::TestHarness::RSpec.configure(config)`, specs can call:
-
-- `build_jekyll_site(...) { |site, paths| ... }`
-- `merge_jekyll_data(base, overrides)`
-
-### Minitest helper DSL
-
-When configured via `Jekyll::TestHarness::Minitest.configure`, tests can call:
-
-- `build_jekyll_site(...) { |site, paths| ... }`
-- `merge_jekyll_data(base, overrides)`
-
-## Plugin-specific fixtures
-
-Keep plugin-specific helpers, matchers, and fixtures in your plugin project (for example under `spec/support` and `spec/fixtures`). This gem should remain plugin-agnostic.
-
-## Troubleshooting
-
-- If build logs are too noisy, keep the default `'quiet' => true`.
-- If a build fails, `SiteBuildError` includes source/destination paths and a config snapshot.
-- Use `keep_site_on_failure: true` to retain temporary files for local debugging.

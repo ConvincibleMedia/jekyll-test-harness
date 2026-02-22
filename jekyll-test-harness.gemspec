@@ -1,11 +1,11 @@
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
-require 'jekyll/test_harness/version'
+require 'jekyll_test_harness/version'
 
 Gem::Specification.new do |spec|
 	spec.name = 'jekyll-test-harness'
-	spec.version = Jekyll::TestHarness::VERSION
+	spec.version = JekyllTestHarness::VERSION
 	spec.authors = ['Convincible']
 	spec.email = ['development@convincible.media']
 

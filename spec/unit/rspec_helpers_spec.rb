@@ -2,11 +2,11 @@
 
 require_relative '../spec_helper'
 
-RSpec.describe Jekyll::TestHarness::RSpec::Helpers do
+RSpec.describe JekyllTestHarness::Helpers do
 	# Provides a simple host object for exercising helper module methods directly.
 	let(:helper_host_class) do
 		Class.new do
-			include Jekyll::TestHarness::RSpec::Helpers
+			include JekyllTestHarness::Helpers
 		end
 	end
 
@@ -24,7 +24,7 @@ RSpec.describe Jekyll::TestHarness::RSpec::Helpers do
 	end
 end
 
-RSpec.describe Jekyll::TestHarness::RSpec do
+RSpec.describe JekyllTestHarness do
 	# Records modules passed to include so we can verify configure wiring.
 	class IncludeRecorder
 		attr_reader :included_modules
@@ -38,31 +38,71 @@ RSpec.describe Jekyll::TestHarness::RSpec do
 		end
 	end
 
-	it 'injects helper methods into the supplied RSpec configuration object' do
+	it 'installs helpers into the supplied RSpec configuration object' do
 		configuration = IncludeRecorder.new
-		returned_configuration = described_class.configure(configuration)
+		returned_configuration = described_class.install!(:rspec, rspec_configuration: configuration)
 
-		expect(configuration.included_modules).to include(Jekyll::TestHarness::RSpec::Helpers)
+		expect(configuration.included_modules).to include(JekyllTestHarness::Helpers)
 		expect(returned_configuration).to equal(configuration)
 	end
 
-	it 'uses the global RSpec configuration when none is supplied' do
-		configuration = described_class.configure
+	it 'supports configure as an alias for install!' do
+		configuration = IncludeRecorder.new
+		returned_configuration = described_class.configure(:rspec, rspec_configuration: configuration)
+
+		expect(configuration.included_modules).to include(JekyllTestHarness::Helpers)
+		expect(returned_configuration).to equal(configuration)
+	end
+
+	it 'uses the global RSpec configuration when no target is supplied' do
+		configuration = described_class.install!(:rspec)
 		expect(configuration).to equal(::RSpec.configuration)
 	end
 
-	it 'raises a clear error when configure is called with an invalid object' do
+	it 'raises a clear error when RSpec configuration target is invalid' do
 		expect do
-			described_class.configure(Object.new)
+			described_class.install!(:rspec, rspec_configuration: Object.new)
 		end.to raise_error(ArgumentError, /must respond to #include/)
 	end
 
-	it 'raises a clear error when the default RSpec configuration is unavailable' do
-		allow(::RSpec).to receive(:respond_to?).and_call_original
-		allow(::RSpec).to receive(:respond_to?).with(:configuration).and_return(false)
+	it 'raises a clear error when explicit RSpec installation is requested but RSpec is unavailable' do
+		allow(described_class).to receive(:rspec_available?).and_return(false)
 
 		expect do
-			described_class.configure
+			described_class.install!(:rspec)
 		end.to raise_error(NameError, /RSpec is not available/)
 	end
+
+	it 'auto-detects RSpec when it is the only loaded framework' do
+		allow(described_class).to receive(:available_frameworks).and_return([:rspec])
+		configuration = IncludeRecorder.new
+
+		returned_configuration = described_class.install!(:auto, rspec_configuration: configuration)
+
+		expect(returned_configuration).to equal(configuration)
+		expect(configuration.included_modules).to include(JekyllTestHarness::Helpers)
+	end
+
+	it 'raises clear guidance when auto detection finds no framework' do
+		allow(described_class).to receive(:available_frameworks).and_return([])
+
+		expect do
+			described_class.install!
+		end.to raise_error(NameError, /No supported test framework is loaded/)
+	end
+
+	it 'raises clear guidance when auto detection finds multiple frameworks' do
+		allow(described_class).to receive(:available_frameworks).and_return(%i[rspec minitest])
+
+		expect do
+			described_class.install!
+		end.to raise_error(ArgumentError, /Multiple supported frameworks are loaded/)
+	end
+
+	it 'raises a clear error for unsupported framework values' do
+		expect do
+			described_class.install!(:unknown)
+		end.to raise_error(ArgumentError, /Unsupported framework/)
+	end
 end
+

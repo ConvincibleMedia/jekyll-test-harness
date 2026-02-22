@@ -2,9 +2,9 @@
 
 require_relative '../spec_helper'
 
-RSpec.describe Jekyll::TestHarness::Paths do
+RSpec.describe JekyllTestHarness::Paths do
 	it 'builds source and output paths and reads files from each root' do
-		Jekyll::TestHarness::TemporaryDirectory.with_dir do |temporary_directory|
+		JekyllTestHarness::TemporaryDirectory.with_dir do |temporary_directory|
 			source = File.join(temporary_directory, 'site')
 			destination = File.join(temporary_directory, '_site')
 			FileUtils.mkdir_p(source)
@@ -23,7 +23,7 @@ RSpec.describe Jekyll::TestHarness::Paths do
 	end
 
 	it 'allows normalised relative paths that remain within the root' do
-		Jekyll::TestHarness::TemporaryDirectory.with_dir do |temporary_directory|
+		JekyllTestHarness::TemporaryDirectory.with_dir do |temporary_directory|
 			source = File.join(temporary_directory, 'site')
 			destination = File.join(temporary_directory, '_site')
 			FileUtils.mkdir_p(File.join(source, 'docs'))
@@ -38,7 +38,7 @@ RSpec.describe Jekyll::TestHarness::Paths do
 	end
 
 	it 'rejects paths that escape the source or destination root' do
-		Jekyll::TestHarness::TemporaryDirectory.with_dir do |temporary_directory|
+		JekyllTestHarness::TemporaryDirectory.with_dir do |temporary_directory|
 			source = File.join(temporary_directory, 'site')
 			destination = File.join(temporary_directory, '_site')
 			FileUtils.mkdir_p(source)
@@ -51,7 +51,7 @@ RSpec.describe Jekyll::TestHarness::Paths do
 	end
 
 	it 'rejects absolute unix and windows-style paths' do
-		Jekyll::TestHarness::TemporaryDirectory.with_dir do |temporary_directory|
+		JekyllTestHarness::TemporaryDirectory.with_dir do |temporary_directory|
 			paths = described_class.new(source: File.join(temporary_directory, 'site'), destination: File.join(temporary_directory, '_site'))
 
 			expect { paths.source_path('/etc/passwd') }.to raise_error(ArgumentError)
@@ -59,3 +59,4 @@ RSpec.describe Jekyll::TestHarness::Paths do
 		end
 	end
 end
+

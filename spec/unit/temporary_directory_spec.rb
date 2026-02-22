@@ -2,11 +2,11 @@
 
 require_relative '../spec_helper'
 
-RSpec.describe Jekyll::TestHarness::TemporaryDirectory do
+RSpec.describe JekyllTestHarness::TemporaryDirectory do
 	it 'raises a harness-specific error when no block is supplied' do
 		expect do
 			described_class.with_dir
-		end.to raise_error(Jekyll::TestHarness::MissingBlockError)
+		end.to raise_error(JekyllTestHarness::MissingBlockError)
 	end
 
 	it 'removes the temporary directory after successful execution' do
@@ -68,3 +68,4 @@ RSpec.describe Jekyll::TestHarness::TemporaryDirectory do
 		expect(Dir.exist?(temporary_directory_path)).to be(false)
 	end
 end
+

@@ -13,3 +13,4 @@ module Jekyll
 end
 
 Liquid::Template.register_tag('fixture_greeting', Jekyll::TestHarnessFixtures::FixtureGreetingTag)
+

@@ -3,9 +3,9 @@
 require_relative '../spec_helper'
 require 'yaml'
 
-RSpec.describe Jekyll::TestHarness::FileTree do
+RSpec.describe JekyllTestHarness::FileTree do
 	it 'writes nested file trees into the target root directory' do
-		Jekyll::TestHarness::TemporaryDirectory.with_dir do |temporary_directory|
+		JekyllTestHarness::TemporaryDirectory.with_dir do |temporary_directory|
 			root = File.join(temporary_directory, 'site')
 			files = {
 				'_layouts' => {
@@ -24,7 +24,7 @@ RSpec.describe Jekyll::TestHarness::FileTree do
 	end
 
 	it 'supports symbol keys and stringifies non-string contents' do
-		Jekyll::TestHarness::TemporaryDirectory.with_dir do |temporary_directory|
+		JekyllTestHarness::TemporaryDirectory.with_dir do |temporary_directory|
 			root = File.join(temporary_directory, 'site')
 			described_class.write(
 				root,
@@ -40,7 +40,7 @@ RSpec.describe Jekyll::TestHarness::FileTree do
 	end
 
 	it 'writes YAML data and creates parent directories' do
-		Jekyll::TestHarness::TemporaryDirectory.with_dir do |temporary_directory|
+		JekyllTestHarness::TemporaryDirectory.with_dir do |temporary_directory|
 			yaml_path = File.join(temporary_directory, 'site', '_config.yml')
 			described_class.write_yaml(yaml_path, 'quiet' => true, 'incremental' => false)
 
@@ -51,7 +51,7 @@ RSpec.describe Jekyll::TestHarness::FileTree do
 	end
 
 	it 'writes parseable YAML content' do
-		Jekyll::TestHarness::TemporaryDirectory.with_dir do |temporary_directory|
+		JekyllTestHarness::TemporaryDirectory.with_dir do |temporary_directory|
 			yaml_path = File.join(temporary_directory, 'site', '_config.yml')
 			data = { 'quiet' => true, 'nested' => { 'mode' => 'test' } }
 			described_class.write_yaml(yaml_path, data)
@@ -61,3 +61,4 @@ RSpec.describe Jekyll::TestHarness::FileTree do
 		end
 	end
 end
+

@@ -2,8 +2,8 @@
 
 require_relative '../spec_helper'
 
-RSpec.describe Jekyll::TestHarness do
-	describe Jekyll::TestHarness::MissingBlockError do
+RSpec.describe JekyllTestHarness do
+	describe JekyllTestHarness::MissingBlockError do
 		it 'uses a clear default message' do
 			expect(described_class.new.message).to eq('This method requires a block.')
 		end
@@ -13,7 +13,7 @@ RSpec.describe Jekyll::TestHarness do
 		end
 	end
 
-	describe Jekyll::TestHarness::SiteBuildError do
+	describe JekyllTestHarness::SiteBuildError do
 		it 'captures the original error, context attributes, and diagnostic message' do
 			cause = RuntimeError.new('boom')
 			cause.set_backtrace(['test_backtrace_line'])
@@ -37,3 +37,4 @@ RSpec.describe Jekyll::TestHarness do
 		end
 	end
 end
+
