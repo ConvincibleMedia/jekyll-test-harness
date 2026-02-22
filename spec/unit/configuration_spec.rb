@@ -3,6 +3,12 @@
 require_relative '../spec_helper'
 
 RSpec.describe JekyllTestHarness::Configuration do
+	around do |example|
+		described_class.reset_runtime!
+		example.run
+		described_class.reset_runtime!
+	end
+
 	describe '.default_config' do
 		it 'provides deterministic baseline keys and values' do
 			config = described_class.default_config(source: '/tmp/source', destination: '/tmp/destination')
@@ -16,22 +22,40 @@ RSpec.describe JekyllTestHarness::Configuration do
 		end
 	end
 
-	describe '.default_scaffold_files' do
-		it 'returns a deep clone on every call' do
-			first = described_class.default_scaffold_files
-			second = described_class.default_scaffold_files
+	describe '.configure_runtime!' do
+		it 'sets failure mode and resolves a relative output directory from project root' do
+			described_class.configure_runtime!(failures: :keep, output: 'tmp/jth-sites', project_root: '/workspace')
 
-			first['_layouts']['default.html'].replace('changed')
-			first['index.md'].replace('changed')
+			expect(described_class.failure_mode).to eq(:keep)
+			expect(described_class.keep_failures?).to be(true)
+			expect(described_class.project_root).to eq(File.expand_path('/workspace'))
+			expect(described_class.output).to eq(File.expand_path('/workspace/tmp/jth-sites'))
+		end
 
-			expect(second['_layouts']['default.html']).to include('{{ content }}')
-			expect(second['index.md']).to include('Hello from the Jekyll test harness default scaffold.')
+		it 'accepts clean mode and nil output directory' do
+			described_class.configure_runtime!(failures: :clean, output: nil, project_root: '/workspace')
+
+			expect(described_class.failure_mode).to eq(:clean)
+			expect(described_class.keep_failures?).to be(false)
+			expect(described_class.output).to be_nil
+		end
+
+		it 'raises a clear error for unsupported failures modes' do
+			expect do
+				described_class.configure_runtime!(failures: :unknown, output: nil, project_root: '/workspace')
+			end.to raise_error(ArgumentError, /Unsupported failures mode/)
+		end
+
+		it 'raises a clear error for empty output strings' do
+			expect do
+				described_class.configure_runtime!(failures: :clean, output: '   ', project_root: '/workspace')
+			end.to raise_error(ArgumentError, /must not be empty/)
 		end
 	end
 
 	describe '.temporary_directory_prefix' do
 		it 'returns the shared prefix used for temporary site directories' do
-			expect(described_class.temporary_directory_prefix).to eq('jekyll-test-harness-')
+			expect(described_class.temporary_directory_prefix).to eq('jekyll-test-harness')
 		end
 	end
 end

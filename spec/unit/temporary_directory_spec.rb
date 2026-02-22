@@ -21,14 +21,28 @@ RSpec.describe JekyllTestHarness::TemporaryDirectory do
 		expect(Dir.exist?(temporary_directory_path)).to be(false)
 	end
 
-	it 'uses the provided temporary directory prefix' do
-		directory_basename = nil
+	it 'uses label segments and adds a numeric suffix for uniqueness' do
+		created_directories = []
 
-		described_class.with_dir(prefix: 'custom-prefix-') do |directory|
-			directory_basename = File.basename(directory)
+		2.times do
+			described_class.with_dir(label: 'features/tags/special_tag') do |directory|
+				created_directories << directory
+				expect(directory.tr('\\', '/')).to include('/features/tags/')
+				expect(File.basename(directory)).to match(/special-tag-\d+\z/)
+			end
 		end
 
-		expect(directory_basename).to start_with('custom-prefix-')
+		expect(created_directories.map { |directory| File.basename(directory) }.uniq.length).to eq(2)
+	end
+
+	it 'uses the provided prefix when no label is supplied' do
+		basename = nil
+
+		described_class.with_dir(prefix: 'custom-prefix') do |directory|
+			basename = File.basename(directory)
+		end
+
+		expect(basename).to match(/custom-prefix-\d+\z/)
 	end
 
 	it 'still removes successful directories when keep_on_error is true' do
@@ -67,5 +81,16 @@ RSpec.describe JekyllTestHarness::TemporaryDirectory do
 
 		expect(Dir.exist?(temporary_directory_path)).to be(false)
 	end
-end
 
+	it 'leaves the configured root in place after cleanup' do
+		Dir.mktmpdir('jth-root-prune-') do |workspace_root|
+			configured_root = File.join(workspace_root, 'tmp', 'sites')
+
+			described_class.with_dir(root_directory: configured_root, label: 'spec/example') do |directory|
+				expect(directory).to start_with(File.expand_path(configured_root))
+			end
+
+			expect(Dir.exist?(configured_root)).to be(true)
+		end
+	end
+end

@@ -13,6 +13,6 @@ Dir[File.join(__dir__, 'fixtures', 'plugins', '*.rb')].sort.each { |fixture_file
 
 RSpec.configure do |config|
 	# Makes the harness DSL available in all specs.
-	JekyllTestHarness.install!(:rspec, rspec_configuration: config)
+	JekyllTestHarness.install!(framework: :rspec)
 end
 

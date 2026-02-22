@@ -32,7 +32,7 @@ RSpec.describe JekyllTestHarness do
 			expect(error.message).to include('Source path: /tmp/source')
 			expect(error.message).to include('Destination path: /tmp/destination')
 			expect(error.message).to include("Config snapshot: {\"quiet\" => true}")
-			expect(error.message).to include('keep_site_on_failure: true')
+			expect(error.message).to include('failures: :keep')
 			expect(error.backtrace).to eq(['test_backtrace_line'])
 		end
 	end

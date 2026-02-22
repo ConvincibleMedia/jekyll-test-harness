@@ -36,7 +36,7 @@ module JekyllTestHarness
 				"Source path: #{source_path}",
 				"Destination path: #{destination_path}",
 				"Config snapshot: #{config_snapshot.inspect}",
-				'Hint: pass keep_site_on_failure: true to retain the temporary site for debugging.'
+				'Hint: call JekyllTestHarness.install!(..., failures: :keep) to retain failed temporary sites for debugging.'
 			].join("\n")
 		end
 	end

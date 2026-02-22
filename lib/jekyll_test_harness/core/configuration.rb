@@ -1,32 +1,13 @@
 # frozen_string_literal: true
 
-module JekyllTestHarness
-	# Provides shared defaults used by SiteHarness.
-	module Configuration
-		TEMPORARY_DIRECTORY_PREFIX = 'jekyll-test-harness-'
+require 'pathname'
 
-		DEFAULT_SCAFFOLD_FILES = {
-			'_layouts' => {
-				'default.html' => <<~HTML
-					<!doctype html>
-					<html>
-						<head>
-							<meta charset="utf-8">
-							<title>Jekyll Test Harness</title>
-						</head>
-						<body>
-							{{ content }}
-						</body>
-					</html>
-				HTML
-			},
-			'index.md' => <<~MARKDOWN
-				---
-				layout: default
-				---
-				Hello from the Jekyll test harness default scaffold.
-			MARKDOWN
-		}.freeze
+module JekyllTestHarness
+	# Stores runtime harness settings and shared defaults used by SiteHarness.
+	module Configuration
+		DEFAULT_FAILURE_MODE = :clean
+		SUPPORTED_FAILURE_MODES = %i[clean keep].freeze
+		TEMPORARY_DIRECTORY_PREFIX = 'jekyll-test-harness'.freeze
 
 		module_function
 
@@ -40,31 +21,65 @@ module JekyllTestHarness
 			}
 		end
 
-		# Returns a deep copy of scaffold files so callers can safely mutate results.
-		def default_scaffold_files
-			deep_clone(DEFAULT_SCAFFOLD_FILES)
+		# Applies runtime settings for failure handling and site root location.
+		def configure_runtime!(failures:, output:, project_root:)
+			@failure_mode = normalise_failure_mode(failures)
+			@project_root = File.expand_path((project_root || Dir.pwd).to_s)
+			@output = normalise_output(output, @project_root)
 		end
 
-		# Exposes the temporary directory prefix so it stays consistent across helpers.
+		# Resets runtime settings to defaults.
+		def reset_runtime!
+			configure_runtime!(failures: DEFAULT_FAILURE_MODE, output: nil, project_root: Dir.pwd)
+		end
+
+		# Returns the configured behaviour for failed Jekyll builds.
+		def failure_mode
+			@failure_mode || DEFAULT_FAILURE_MODE
+		end
+
+		# Returns true when failed build directories should be kept for debugging.
+		def keep_failures?
+			failure_mode == :keep
+		end
+
+		# Exposes the temporary directory prefix used for unnamed fallback directories.
 		def temporary_directory_prefix
 			TEMPORARY_DIRECTORY_PREFIX
 		end
 
-		# Duplicates hash-like data used for configuration and file trees.
-		def deep_clone(value)
-			case value
-			when Hash
-				value.each_with_object({}) do |(key, nested_value), clone|
-					clone[key] = deep_clone(nested_value)
-				end
-			when Array
-				value.map { |item| deep_clone(item) }
-			when String
-				value.dup
-			else
-				value
-			end
+		# Returns the project root captured during install!.
+		def project_root
+			@project_root || Dir.pwd
 		end
-		private_class_method :deep_clone
+
+		# Returns the configured base directory for build output roots, or nil for system temp.
+		def output
+			@output
+		end
+
+		# Validates and normalises failure mode values.
+		def normalise_failure_mode(failures)
+			normalised_failures = (failures || DEFAULT_FAILURE_MODE).to_sym
+			return normalised_failures if SUPPORTED_FAILURE_MODES.include?(normalised_failures)
+
+			raise ArgumentError, "Unsupported failures mode '#{failures}'. Supported values: #{SUPPORTED_FAILURE_MODES.map(&:inspect).join(', ')}."
+		end
+		private_class_method :normalise_failure_mode
+
+		# Expands custom output roots relative to project root.
+		def normalise_output(output, project_root)
+			return nil if output.nil?
+
+			output_path = output.to_s
+			raise ArgumentError, 'output must not be empty.' if output_path.strip.empty?
+
+			return File.expand_path(output_path) if Pathname.new(output_path).absolute?
+
+			File.expand_path(output_path, project_root)
+		end
+		private_class_method :normalise_output
 	end
 end
+
+JekyllTestHarness::Configuration.reset_runtime!

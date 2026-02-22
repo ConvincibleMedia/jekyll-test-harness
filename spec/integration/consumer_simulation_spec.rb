@@ -27,7 +27,7 @@ RSpec.describe 'Consumer simulation', :consumer_simulation do
 
 			rspec_result = run_command(*bundler_command('exec', 'rspec'), chdir: project_root)
 			expect(rspec_result[:status].success?).to be(false)
-			expect(rspec_result[:stdout]).to include('build_jekyll_site')
+			expect(rspec_result[:stdout]).to include('jekyll_build')
 			expect(rspec_result[:stdout]).to include('SiteHarness.with_site requires a block.')
 		end
 	end

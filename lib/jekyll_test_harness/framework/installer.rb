@@ -6,14 +6,14 @@ module JekyllTestHarness
 	module_function
 
 	# Installs harness helpers into RSpec or Minitest based on explicit or automatic framework selection.
-	def install!(framework = :auto, rspec_configuration: nil, minitest_test_case: nil)
+	def install!(framework: :auto, minitest_test_case: nil, failures: Configuration::DEFAULT_FAILURE_MODE, output: nil)
+		Configuration.configure_runtime!(failures: failures, output: output, project_root: Dir.pwd)
 		selected_framework = resolve_framework(framework)
 		case selected_framework
 		when :rspec
-			target_rspec_configuration = rspec_configuration || default_rspec_configuration
-			validate_include_target!(target_rspec_configuration, 'RSpec configuration')
-			target_rspec_configuration.include(Helpers)
-			target_rspec_configuration
+			rspec_configuration = default_rspec_configuration
+			rspec_configuration.include(Helpers)
+			rspec_configuration
 		when :minitest
 			target_minitest_test_case = minitest_test_case || default_minitest_test_case
 			validate_include_target!(target_minitest_test_case, 'Minitest test case class')
@@ -26,7 +26,8 @@ module JekyllTestHarness
 
 	# Supports the previous method name while routing callers to the unified install API.
 	def configure(*arguments, **options)
-		install!(*arguments, **options)
+		framework = options.key?(:framework) ? options[:framework] : arguments.first
+		install!(framework: framework || :auto, **options.reject { |key, _value| key == :framework })
 	end
 
 	# Returns the currently available test frameworks in the running process.
@@ -59,9 +60,9 @@ module JekyllTestHarness
 		when 1
 			detected_frameworks.first
 		when 0
-			raise NameError, "No supported test framework is loaded. Require 'rspec' or 'minitest/autorun' before calling JekyllTestHarness.install!, or pass an explicit framework."
+			raise NameError, "No supported test framework is loaded. Require 'rspec' or 'minitest/autorun' before calling JekyllTestHarness.install!, or pass framework: explicitly."
 		else
-			raise ArgumentError, "Multiple supported frameworks are loaded (#{detected_frameworks.join(', ')}). Call JekyllTestHarness.install!(:rspec) or JekyllTestHarness.install!(:minitest) explicitly."
+			raise ArgumentError, "Multiple supported frameworks are loaded (#{detected_frameworks.join(', ')}). Call JekyllTestHarness.install!(framework: :rspec) or JekyllTestHarness.install!(framework: :minitest) explicitly."
 		end
 	end
 	private_class_method :resolve_automatic_framework
@@ -111,9 +112,9 @@ module JekyllTestHarness
 	def framework_not_loaded_error(framework)
 		case framework
 		when :rspec
-			NameError.new("RSpec is not available. Require 'rspec' before calling JekyllTestHarness.install!(:rspec).")
+			NameError.new("RSpec is not available. Require 'rspec' before calling JekyllTestHarness.install!(framework: :rspec).")
 		when :minitest
-			NameError.new("Minitest::Test is not available. Require 'minitest/autorun' before calling JekyllTestHarness.install!(:minitest).")
+			NameError.new("Minitest::Test is not available. Require 'minitest/autorun' before calling JekyllTestHarness.install!(framework: :minitest).")
 		else
 			NameError.new("Framework '#{framework}' is not available.")
 		end

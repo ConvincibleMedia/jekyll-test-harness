@@ -80,7 +80,7 @@ module ConsumerSimulationHelpers
 				require_relative '../lib/consumer_fixture_plugin'
 
 				RSpec.configure do |config|
-					JekyllTestHarness.install!(:rspec, rspec_configuration: config)
+					JekyllTestHarness.install!(framework: :rspec)
 				end
 			RUBY
 		)
@@ -93,7 +93,7 @@ module ConsumerSimulationHelpers
 
 				RSpec.describe 'consumer failure output' do
 					it 'shows readable harness failures' do
-						build_jekyll_site(default_scaffold: false)
+						jekyll_build
 					end
 				end
 			RUBY
@@ -114,10 +114,10 @@ module ConsumerSimulationHelpers
 							}
 						}
 
-						build_jekyll_site(files: files) do |site, paths|
+						jekyll_build(files: files) do |site, files|
 							document = site.collections.fetch('posts').docs.first
 							expect(document.data['consumer_hook_marker']).to eq('consumer-hooked')
-							expect(paths.read_output('docs/consumer.html')).to include('consumer-tag-output')
+							expect(files.read('docs/consumer.html')).to include('consumer-tag-output')
 						end
 					end
 				end
@@ -142,7 +142,7 @@ module ConsumerSimulationHelpers
 				require 'jekyll_test_harness'
 				require_relative '../lib/consumer_fixture_plugin'
 
-				JekyllTestHarness.install!(:minitest)
+				JekyllTestHarness.install!(framework: :minitest)
 			RUBY
 		)
 
@@ -154,7 +154,7 @@ module ConsumerSimulationHelpers
 
 				class ConsumerFailureOutputTest < Minitest::Test
 					def test_shows_readable_harness_failures
-						build_jekyll_site(default_scaffold: false)
+						jekyll_build
 					end
 				end
 			RUBY
@@ -175,10 +175,10 @@ module ConsumerSimulationHelpers
 							}
 						}
 
-						build_jekyll_site(files: files) do |site, paths|
+						jekyll_build(files: files) do |site, files|
 							document = site.collections.fetch('posts').docs.first
 							assert_equal('consumer-hooked', document.data['consumer_hook_marker'])
-							assert_includes(paths.read_output('docs/consumer.html'), 'consumer-tag-output')
+							assert_includes(files.read('docs/consumer.html'), 'consumer-tag-output')
 						end
 					end
 				end

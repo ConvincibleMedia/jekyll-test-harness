@@ -27,7 +27,7 @@ RSpec.describe 'Minitest consumer simulation', :consumer_simulation do
 
 			minitest_result = run_command(*bundler_command('exec', 'ruby', '-Itest', 'test/integration_test.rb'), chdir: project_root)
 			expect(minitest_result[:status].success?).to be(false)
-			expect(minitest_result[:stdout]).to include('build_jekyll_site')
+			expect(minitest_result[:stdout]).to include('jekyll_build')
 			expect(minitest_result[:stdout]).to include('SiteHarness.with_site requires a block.')
 		end
 	end
