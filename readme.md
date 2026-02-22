@@ -42,7 +42,7 @@ JekyllTestHarness.install!
 
 ## Test DSL
 
-After calling `install!`, your examples/tests get:
+After calling `install!`, your examples/tests get two helper methods:
 
 - `build_jekyll_site(...) { |site, paths| ... }`
 - `merge_jekyll_data(base, overrides)`
@@ -62,8 +62,8 @@ RSpec.describe 'my plugin integration' do
     }
 
     build_jekyll_site(files: files) do |site, paths|
-      # site = the actual in-memory Jekyll site just built
-      # paths = 
+      # site = in-memory Jekyll::Site instance for this build
+      # paths = helper for reading source/output files
       post = site.collections.fetch('posts').docs.first
       html = paths.read_output('docs/demo.html')
       expect(post).not_to be_nil
@@ -75,8 +75,9 @@ end
 
 ### `build_jekyll_site`
 
-Builds a fresh throwaway Jekyll site for one test example, runs a real Jekyll build (`Jekyll::Site#process`), then yield both the built `site` object and a `paths` object representing the files built.
-
+Builds a fresh throwaway Jekyll site for one test example, runs a real Jekyll build (`Jekyll::Site#process`), and yields both:
+- `site`: the built `Jekyll::Site` object (collections, documents, metadata, etc.)
+- `paths`: file helper object for source/output assertions
 
 ```ruby
 build_jekyll_site(
@@ -91,6 +92,21 @@ build_jekyll_site(
 end
 ```
 
+Options:
+
+- `config`:
+  Per-example config overrides merged last.
+- `files`:
+  Per-example files written into the temporary source.
+- `base_config`:
+  Reusable baseline config for a spec group.
+- `base_files`:
+  Reusable baseline file tree for a spec group.
+- `default_scaffold`:
+  If `true`, writes a minimal working scaffold (`_layouts/default.html`, `index.md`).
+- `keep_site_on_failure`:
+  If `true`, keeps temporary site directories when a build fails, useful for debugging.
+
 Default config baseline:
 
 - `'source'` and `'destination'` are temporary paths
@@ -102,17 +118,23 @@ Default scaffold (`default_scaffold: true`):
 - `_layouts/default.html`
 - `index.md`
 
-### `merge_jekyll_data(base, overrides)`
-
-A simple implementation of a deep hash merge is provided as a useful helper. This could be used to vary a base set of files or config, for instance.
-
 ### `paths` Object
 
 The yielded `paths` object exposes:
 
-- `source`
-- `destination`
-- `source_path(relative_path)`
-- `output_path(relative_path)`
-- `read_source(relative_path)`
-- `read_output(relative_path)`
+- `source`: absolute path to the temporary source directory.
+- `destination`: absolute path to the temporary output directory.
+- `source_path(relative_path)`:
+  absolute path under `source`.
+- `output_path(relative_path)`:
+  absolute path under `destination`.
+- `read_source(relative_path)`:
+  file contents from source.
+- `read_output(relative_path)`:
+  file contents from output.
+
+`relative_path` is validated to prevent path traversal outside the temporary site.
+
+### `merge_jekyll_data(base, overrides)`
+
+A simple implementation of a deep hash merge is provided as a useful helper. This could be used to vary a base set of files or config, for instance.
