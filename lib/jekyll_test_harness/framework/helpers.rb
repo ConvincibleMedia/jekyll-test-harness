@@ -1,0 +1,105 @@
+# frozen_string_literal: true
+
+module JekyllTestHarness
+	# Provides framework-agnostic helper methods for test examples.
+	module Helpers
+		UNSET_ARGUMENT = Object.new
+
+		# Builds and processes one temporary Jekyll site for the current test.
+		# Blueprint mode is explicit: passing a blueprint ignores buffered config/files for that build.
+		def jekyll_build(blueprint = nil, config: UNSET_ARGUMENT, files: UNSET_ARGUMENT, &block)
+			buffered_config, buffered_files = consume_jekyll_buffers
+			selected_blueprint = coerce_blueprint(blueprint)
+			blueprint_mode = !blueprint.nil?
+
+			selected_config = resolve_build_input(value: config, buffered_value: buffered_config, field_name: 'config', blueprint_mode: blueprint_mode)
+			selected_files = resolve_build_input(value: files, buffered_value: buffered_files, field_name: 'files', blueprint_mode: blueprint_mode)
+			merged_config = jekyll_merge(selected_blueprint.config, selected_config)
+			merged_files = jekyll_merge(selected_blueprint.files, selected_files)
+
+			JekyllTestHarness::SiteHarness.with_site(config: merged_config, files: merged_files, context: self, &block)
+		end
+
+		# Deep-merges hash values or blueprint values using harness merge semantics.
+		def jekyll_merge(base, new_value)
+			JekyllTestHarness::SiteHarness.jekyll_merge(base, new_value)
+		end
+
+		# Creates a reusable blueprint object from config and files hash inputs.
+		def jekyll_blueprint(config: {}, files: {})
+			JekyllTestHarness::JekyllBlueprint.new(
+				config: coerce_hash(config, field_name: 'config'),
+				files: coerce_hash(files, field_name: 'files')
+			)
+		end
+
+		# Merges config into the buffered build config and returns the merged addition.
+		def jekyll_config(config = nil, file: nil, **keyword_config)
+			fixture_config = file.nil? ? {} : JekyllTestHarness::FixtureLoader.read_yaml_hash(file: file, project_root: JekyllTestHarness::Configuration.project_root)
+			inline_config = coerce_hash(config, field_name: 'config')
+			inline_config = jekyll_merge(inline_config, coerce_hash(keyword_config, field_name: 'config')) unless keyword_config.empty?
+			resolved_config = jekyll_merge(fixture_config, inline_config)
+			@jekyll_buffered_config = jekyll_merge(jekyll_buffered_config, resolved_config)
+			JekyllTestHarness::DataTools.deep_clone(resolved_config)
+		end
+
+		# Builds files with the folder/file DSL, buffers them, and returns the generated hash.
+		def jekyll_files(&block)
+			raise MissingBlockError, ValidationMessages.missing_block(method_name: 'jekyll_files', usage: 'jekyll_files do ... end') unless block_given?
+
+			resolved_files = JekyllTestHarness::FilesDsl.new(host_context: self, project_root: JekyllTestHarness::Configuration.project_root).build(&block)
+			@jekyll_buffered_files = jekyll_merge(jekyll_buffered_files, resolved_files)
+			JekyllTestHarness::DataTools.deep_clone(resolved_files)
+		end
+
+		private
+
+		# Returns buffered config as a hash.
+		def jekyll_buffered_config
+			@jekyll_buffered_config ||= {}
+		end
+
+		# Returns buffered files as a hash.
+		def jekyll_buffered_files
+			@jekyll_buffered_files ||= {}
+		end
+
+		# Returns the current buffers and flushes them immediately.
+		def consume_jekyll_buffers
+			buffered_config = JekyllTestHarness::DataTools.deep_clone(jekyll_buffered_config)
+			buffered_files = JekyllTestHarness::DataTools.deep_clone(jekyll_buffered_files)
+			@jekyll_buffered_config = {}
+			@jekyll_buffered_files = {}
+			[buffered_config, buffered_files]
+		end
+
+		# Selects explicit build inputs, falling back to buffers only when blueprint mode is not active.
+		def resolve_build_input(value:, buffered_value:, field_name:, blueprint_mode:)
+			return coerce_hash(value, field_name: field_name) unless value.equal?(UNSET_ARGUMENT)
+			return {} if blueprint_mode
+
+			buffered_value
+		end
+
+		# Normalises nil/hash values and rejects unsupported input types.
+		def coerce_hash(value, field_name:)
+			return {} if value.nil?
+			return JekyllTestHarness::DataTools.deep_clone(value) if value.is_a?(Hash)
+
+			raise ArgumentError, ValidationMessages.type_error(argument_name: field_name, expected: 'a Hash', value: value, usage: "Pass `#{field_name}: { ... }`.")
+		end
+
+		# Normalises optional blueprint arguments for jekyll_build.
+		def coerce_blueprint(value)
+			return JekyllTestHarness::JekyllBlueprint.new if value.nil?
+			return value if value.is_a?(JekyllTestHarness::JekyllBlueprint)
+
+			raise ArgumentError, ValidationMessages.type_error(
+				argument_name: 'jekyll_build first argument',
+				expected: 'a JekyllBlueprint',
+				value: value,
+				usage: 'Use `jekyll_blueprint(...)` and pass it as the first argument to `jekyll_build`.'
+			)
+		end
+	end
+end

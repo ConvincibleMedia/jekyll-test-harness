@@ -15,6 +15,16 @@
 **/cache
 **/logs
 
+# Working files/dirs
+coverage
+.rspec_status
+spec/reports
+
 # Settings
 .vscode
 agents.md
+
+# Gem
+pkg
+*.gem
+Gemfile.lock
