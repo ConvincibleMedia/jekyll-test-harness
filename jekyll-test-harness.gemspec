@@ -10,11 +10,11 @@ Gem::Specification.new do |spec|
 	spec.email = ['development@convincible.media']
 
 	spec.summary = 'Reusable integration test harness for Jekyll plugin development.'
-	spec.description = 'Builds isolated temporary Jekyll sites for plugin RSpec and Minitest suites with optional framework helper DSL modules.'
+	spec.description = 'Builds isolated temporary Jekyll sites for plugin testing with RSpec or Minitest, plus optional helper DSL.'
 	spec.homepage = 'https://github.com/ConvincibleMedia/jekyll-test-harness'
 	spec.license = 'LGPL-3.0-or-later'
 
-	spec.files = Dir.chdir(__dir__) { Dir['lib/**/*.rb'] + %w[readme.md CHANGELOG.md LICENSE.txt] }
+	spec.files = Dir.chdir(__dir__) { Dir['lib/**/*.rb'] + %w[readme.md] }
 	spec.require_paths = ['lib']
 
 	spec.required_ruby_version = '>= 2.4.4'

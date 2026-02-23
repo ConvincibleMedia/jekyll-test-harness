@@ -1,5 +1,7 @@
 # Jekyll Test Harness
 
+![Alpha](https://img.shields.io/badge/status-alpha-red)
+
 Simple integration testing for Jekyll plugins. Extends RSpec or Minitest with helper methods for building a real Jekyll site, with your plugin available, to test how it actually runs within Jekyll.
 
 
