@@ -53,7 +53,12 @@ RSpec.describe JekyllTestHarness::FilesDsl do
 
 		frontmatter_match = index_payload.match(/\A---\n(.*?)---\n\n/m)
 		expect(frontmatter_match).not_to be_nil
-		frontmatter_hash = YAML.safe_load(frontmatter_match[1], permitted_classes: [Symbol], permitted_symbols: [:tags], aliases: false)
+		safe_load_parameters = YAML.method(:safe_load).parameters
+		frontmatter_hash = if safe_load_parameters.any? { |parameter_type, parameter_name| parameter_type == :key && parameter_name == :permitted_classes }
+			YAML.safe_load(frontmatter_match[1], permitted_classes: [Symbol], permitted_symbols: [:tags], aliases: false)
+		else
+			YAML.safe_load(frontmatter_match[1], [Symbol], [:tags], false)
+		end
 		expect(frontmatter_hash['layout']).to eq('default')
 		expect(frontmatter_hash['title']).to eq('DSL title')
 		expect(frontmatter_hash[:tags]).to eq(%w[alpha beta])

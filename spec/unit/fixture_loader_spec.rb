@@ -19,6 +19,26 @@ RSpec.describe JekyllTestHarness::FixtureLoader do
 				described_class.resolve_path(file: '../Gemfile', project_root: project_root)
 			end.to raise_error(ArgumentError, /escapes the configured project root/)
 		end
+
+		it 'rejects case-variant absolute paths on case-sensitive filesystems' do
+			Dir.mktmpdir('jth-fixture-loader-case-') do |workspace|
+				project_root_path = File.join(workspace, 'ProjectRoot')
+				case_variant_root_path = File.join(workspace, 'projectroot')
+				FileUtils.mkdir_p(project_root_path)
+				FileUtils.mkdir_p(case_variant_root_path)
+
+				if File.realpath(project_root_path) == File.realpath(case_variant_root_path)
+					skip('Filesystem is case-insensitive for this workspace.')
+				end
+
+				outside_fixture_path = File.join(case_variant_root_path, 'outside.txt')
+				File.write(outside_fixture_path, "outside fixture\n")
+
+				expect do
+					described_class.resolve_path(file: outside_fixture_path, project_root: project_root_path)
+				end.to raise_error(ArgumentError, /escapes the configured project root/)
+			end
+		end
 	end
 
 	describe '.read_text' do

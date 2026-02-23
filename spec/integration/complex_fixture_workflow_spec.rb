@@ -32,10 +32,11 @@ RSpec.describe 'Complex fixture workflow' do
 		)
 		composed_blueprint = jekyll_merge(base_blueprint, overlay_blueprint)
 
-		jekyll_config(file: 'spec/fixtures/complex/config/base.yml')
-		jekyll_config({ 'my_plugin' => { 'flags' => { 'inline' => true } } }, file: 'spec/fixtures/complex/config/feature_flags.yml')
+		base_config_overrides = jekyll_config(file: 'spec/fixtures/complex/config/base.yml')
+		feature_config_overrides = jekyll_config({ 'my_plugin' => { 'flags' => { 'inline' => true } } }, file: 'spec/fixtures/complex/config/feature_flags.yml')
+		explicit_config_overrides = jekyll_merge(base_config_overrides, feature_config_overrides)
 
-		jekyll_files do
+		explicit_file_overrides = jekyll_files do
 			folder '_layouts' do
 				file 'default.html' do
 					contents(file: 'spec/fixtures/complex/layouts/default.html')
@@ -58,7 +59,7 @@ RSpec.describe 'Complex fixture workflow' do
 			end
 		end
 
-		jekyll_build(composed_blueprint) do |site, files|
+		jekyll_build(composed_blueprint, config: explicit_config_overrides, files: explicit_file_overrides) do |site, files|
 			guide_documents = site.collections.fetch('guides').docs
 			expect(guide_documents.map(&:basename_without_ext)).to include('blueprint', 'overlay', 'dsl-guide')
 

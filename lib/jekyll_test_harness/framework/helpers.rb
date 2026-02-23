@@ -6,12 +6,14 @@ module JekyllTestHarness
 		UNSET_ARGUMENT = Object.new
 
 		# Builds and processes one temporary Jekyll site for the current test.
+		# Blueprint mode is explicit: passing a blueprint ignores buffered config/files for that build.
 		def jekyll_build(blueprint = nil, config: UNSET_ARGUMENT, files: UNSET_ARGUMENT, &block)
 			buffered_config, buffered_files = consume_jekyll_buffers
 			selected_blueprint = coerce_blueprint(blueprint)
+			blueprint_mode = !blueprint.nil?
 
-			selected_config = config.equal?(UNSET_ARGUMENT) ? buffered_config : coerce_hash(config, field_name: 'config')
-			selected_files = files.equal?(UNSET_ARGUMENT) ? buffered_files : coerce_hash(files, field_name: 'files')
+			selected_config = resolve_build_input(value: config, buffered_value: buffered_config, field_name: 'config', blueprint_mode: blueprint_mode)
+			selected_files = resolve_build_input(value: files, buffered_value: buffered_files, field_name: 'files', blueprint_mode: blueprint_mode)
 			merged_config = jekyll_merge(selected_blueprint.config, selected_config)
 			merged_files = jekyll_merge(selected_blueprint.files, selected_files)
 
@@ -69,6 +71,14 @@ module JekyllTestHarness
 			@jekyll_buffered_config = {}
 			@jekyll_buffered_files = {}
 			[buffered_config, buffered_files]
+		end
+
+		# Selects explicit build inputs, falling back to buffers only when blueprint mode is not active.
+		def resolve_build_input(value:, buffered_value:, field_name:, blueprint_mode:)
+			return coerce_hash(value, field_name: field_name) unless value.equal?(UNSET_ARGUMENT)
+			return {} if blueprint_mode
+
+			buffered_value
 		end
 
 		# Normalises nil/hash values and rejects unsupported input types.

@@ -9,10 +9,7 @@ RSpec.describe 'Minitest consumer simulation', :consumer_simulation do
 		Dir.mktmpdir('jth-consumer-minitest-pass-') do |project_root|
 			create_minitest_consumer_project(project_root: project_root, include_failing_test: false)
 
-			install_result = run_command(*bundler_command('install'), chdir: project_root)
-			expect(install_result[:status].success?).to be(true), "bundle install failed:\n#{install_result[:stdout]}\n#{install_result[:stderr]}"
-
-			minitest_result = run_command(*bundler_command('exec', 'ruby', '-Itest', 'test/integration_test.rb'), chdir: project_root)
+			minitest_result = run_command(RbConfig.ruby, '-Itest', 'test/integration_test.rb', chdir: project_root)
 			expect(minitest_result[:status].success?).to be(true), "Minitest run failed:\n#{minitest_result[:stdout]}\n#{minitest_result[:stderr]}"
 			expect(minitest_result[:stdout]).to match(/1 runs?, \d+ assertions?, 0 failures, 0 errors, 0 skips/)
 		end
@@ -22,10 +19,7 @@ RSpec.describe 'Minitest consumer simulation', :consumer_simulation do
 		Dir.mktmpdir('jth-consumer-minitest-fail-') do |project_root|
 			create_minitest_consumer_project(project_root: project_root, include_failing_test: true)
 
-			install_result = run_command(*bundler_command('install'), chdir: project_root)
-			expect(install_result[:status].success?).to be(true), "bundle install failed:\n#{install_result[:stdout]}\n#{install_result[:stderr]}"
-
-			minitest_result = run_command(*bundler_command('exec', 'ruby', '-Itest', 'test/integration_test.rb'), chdir: project_root)
+			minitest_result = run_command(RbConfig.ruby, '-Itest', 'test/integration_test.rb', chdir: project_root)
 			expect(minitest_result[:status].success?).to be(false)
 			expect(minitest_result[:stdout]).to include('jekyll_build')
 			expect(minitest_result[:stdout]).to include('SiteHarness.with_site requires a block.')

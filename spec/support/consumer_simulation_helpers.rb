@@ -2,15 +2,19 @@
 
 # Shared helper methods for end-to-end consumer simulation subprocess tests.
 module ConsumerSimulationHelpers
-	# Runs Bundler via the current Ruby to avoid shell execute issues on Windows.
-	def bundler_command(*arguments)
-		[RbConfig.ruby, '-S', 'bundle', "_#{Bundler::VERSION}_", *arguments]
+	# Runs a Ruby executable command via the current interpreter to avoid shell execute issues on Windows.
+	def ruby_command(*arguments)
+		[RbConfig.ruby, '-S', *arguments]
 	end
 
 	# Runs a command in a project directory and returns stdout, stderr, and status.
 	def run_command(*command, chdir:)
-		command_environment = Bundler.unbundled_env.merge('BUNDLE_GEMFILE' => File.join(chdir, 'Gemfile'))
-		stdout, stderr, status = Open3.capture3(command_environment, *command, chdir: chdir)
+		stdout = nil
+		stderr = nil
+		status = nil
+		Bundler.with_unbundled_env do
+			stdout, stderr, status = Open3.capture3(*command, chdir: chdir)
+		end
 		{ stdout: stdout, stderr: stderr, status: status }
 	end
 
@@ -20,7 +24,7 @@ module ConsumerSimulationHelpers
 		File.write(path, content)
 	end
 
-	# Returns a normalised absolute path to this gem root for temporary consumer Gemfiles.
+	# Returns a normalised absolute path to this gem root for temporary consumer subprocesses.
 	def gem_root_path
 		File.expand_path('../..', __dir__).tr('\\', '/')
 	end
@@ -49,24 +53,8 @@ module ConsumerSimulationHelpers
 		)
 	end
 
-	# Writes a Gemfile shared by both simulated consumer frameworks.
-	def write_consumer_gemfile(project_root:)
-		write_file(
-			File.join(project_root, 'Gemfile'),
-			<<~RUBY
-				source "https://rubygems.org"
-
-				gem "jekyll", ">= 3.8", "< 5.0"
-				gem "rspec", "~> 3.13"
-				gem "minitest", ">= 5.0"
-				gem "jekyll-test-harness", path: "#{gem_root_path}"
-			RUBY
-		)
-	end
-
 	# Creates a minimal RSpec consumer project that uses jekyll-test-harness.
 	def create_rspec_consumer_project(project_root:, include_failing_spec:)
-		write_consumer_gemfile(project_root: project_root)
 		write_consumer_fixture_plugin(project_root: project_root)
 
 		write_file(
@@ -74,7 +62,7 @@ module ConsumerSimulationHelpers
 			<<~RUBY
 				# frozen_string_literal: true
 
-				require 'bundler/setup'
+				$LOAD_PATH.unshift(File.expand_path('#{gem_root_path}/lib'))
 				require 'rspec'
 				require 'jekyll_test_harness'
 				require_relative '../lib/consumer_fixture_plugin'
@@ -129,7 +117,6 @@ module ConsumerSimulationHelpers
 
 	# Creates a minimal Minitest consumer project that uses jekyll-test-harness.
 	def create_minitest_consumer_project(project_root:, include_failing_test:)
-		write_consumer_gemfile(project_root: project_root)
 		write_consumer_fixture_plugin(project_root: project_root)
 
 		write_file(
@@ -137,7 +124,7 @@ module ConsumerSimulationHelpers
 			<<~RUBY
 				# frozen_string_literal: true
 
-				require 'bundler/setup'
+				$LOAD_PATH.unshift(File.expand_path('#{gem_root_path}/lib'))
 				require 'minitest/autorun'
 				require 'jekyll_test_harness'
 				require_relative '../lib/consumer_fixture_plugin'

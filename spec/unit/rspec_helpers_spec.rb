@@ -129,6 +129,12 @@ RSpec.describe JekyllTestHarness::Helpers do
 
 	it 'accepts a blueprint in jekyll_build and merges explicit config/files over it' do
 		host = helper_host_class.new
+		host.jekyll_config('my_plugin' => { 'buffered' => true })
+		host.jekyll_files do
+			file 'buffered.txt' do
+				'buffered'
+			end
+		end
 		blueprint = host.jekyll_blueprint(
 			config: { 'my_plugin' => { 'mode' => 'base', 'shared' => true } },
 			files: minimal_site_files('Blueprint body')
@@ -141,6 +147,50 @@ RSpec.describe JekyllTestHarness::Helpers do
 			written_config = YAML.safe_load(files.source_read('_config.yml'))
 			expect(written_config['my_plugin']).to eq('mode' => 'override', 'shared' => true)
 			expect(files.read('index.html')).to include('Override body')
+			expect(files.source_list).not_to include('buffered.txt')
+		end
+	end
+
+	it 'ignores buffered config/files when building from a blueprint without explicit overrides' do
+		host = helper_host_class.new
+		host.jekyll_config('my_plugin' => { 'mode' => 'buffered' })
+		host.jekyll_files do
+			file 'buffered.txt' do
+				'buffered'
+			end
+		end
+		blueprint = host.jekyll_blueprint(
+			config: { 'my_plugin' => { 'mode' => 'blueprint' } },
+			files: minimal_site_files('Blueprint body')
+		)
+
+		host.jekyll_build(blueprint) do |_site, files|
+			written_config = YAML.safe_load(files.source_read('_config.yml'))
+			expect(written_config.dig('my_plugin', 'mode')).to eq('blueprint')
+			expect(files.read('index.html')).to include('Blueprint body')
+			expect(files.source_list).not_to include('buffered.txt')
+		end
+	end
+
+	it 'flushes buffers even when blueprint mode ignores buffered config/files' do
+		host = helper_host_class.new
+		host.jekyll_config('my_plugin' => { 'mode' => 'buffered' })
+		host.jekyll_files do
+			file 'buffered.txt' do
+				'buffered'
+			end
+		end
+		blueprint = host.jekyll_blueprint(
+			config: { 'my_plugin' => { 'mode' => 'blueprint' } },
+			files: minimal_site_files('Blueprint body')
+		)
+
+		host.jekyll_build(blueprint) do |_site, files|
+			expect(files.source_list).not_to include('buffered.txt')
+		end
+
+		host.jekyll_build do |_site, files|
+			expect(files.source_list).to eq(['_config.yml'])
 		end
 	end
 

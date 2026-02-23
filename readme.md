@@ -49,6 +49,12 @@ Options:
   - absolute path: used as-is.
 
 
+## Compatibility
+
+- Ruby: `>= 2.4.4`
+- Jekyll: `>= 3.8.5`, `< 5.0`
+
+
 ## Test DSL
 
 After calling `install!`, your examples/tests get these helper methods:
@@ -73,6 +79,12 @@ end
 ```
 
 No default scaffold is written automatically. Supply your own files/layouts/content.
+
+When the first argument is a blueprint, `jekyll_build` runs in explicit blueprint mode:
+
+- buffered values from `jekyll_config` and `jekyll_files` are ignored for that build.
+- only blueprint data plus explicit `config:`/`files:` overrides are used.
+- every `jekyll_build` call flushes buffered config/files, whether buffers are used in that call or not.
 
 ### `files` object
 
@@ -106,7 +118,7 @@ Builds config data and appends it to the internal config buffer.
 
 Each call returns the resolved hash and merges it into the buffer.
 
-When calling `jekyll_build`, if `config:` is omitted, the buffered value from `jekyll_config` is used. Either way, the buffer is then flushed.
+When calling `jekyll_build`, if `config:` is omitted and no blueprint is passed, the buffered value from `jekyll_config` is used. Either way, the buffer is then flushed.
 
 Safety rule:
 
@@ -148,7 +160,7 @@ end
 
 Each `jekyll_files` call both returns the generated hash and merges it into the internal files buffer. The returned hash could be passed to `jekyll_build` or `jekyll_blueprint`.
 
-When calling `jekyll_build`, if `files:` is omitted, the buffered value from `jekyll_files` is used. Either way, the buffer is then flushed.
+When calling `jekyll_build`, if `files:` is omitted and no blueprint is passed, the buffered value from `jekyll_files` is used. Either way, the buffer is then flushed.
 
 ### `jekyll_blueprint(config:, files:)`
 
@@ -165,6 +177,8 @@ base_blueprint = jekyll_blueprint(
 ```
 
 A blueprint can be passed as the first parameter of `jekyll_build`. If `config` or `files` are also passed, these are merged over the blueprint.
+
+Passing a blueprint also disables buffered `jekyll_config`/`jekyll_files` input for that build.
 
 ### `jekyll_merge(base, new)`
 
@@ -205,3 +219,11 @@ RSpec.describe 'my plugin integration' do
   end
 end
 ```
+
+## Release Notes
+
+See `CHANGELOG.md`.
+
+## Licence
+
+`jekyll-test-harness` is licensed under `LGPL-3.0-or-later`. See `LICENSE.txt`.

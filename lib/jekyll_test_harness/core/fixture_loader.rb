@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'rbconfig'
 require 'yaml'
 
 module JekyllTestHarness
@@ -38,11 +39,26 @@ module JekyllTestHarness
 
 		# Returns true when the candidate path is inside the configured project root.
 		def path_within_root?(candidate_path, root_path)
-			normalised_candidate = File.expand_path(candidate_path).tr('\\', '/').downcase
-			normalised_root = File.expand_path(root_path).tr('\\', '/').downcase
+			normalised_candidate = normalise_path_for_comparison(candidate_path)
+			normalised_root = normalise_path_for_comparison(root_path)
 			normalised_candidate == normalised_root || normalised_candidate.start_with?("#{normalised_root}/")
 		end
 		private_class_method :path_within_root?
+
+		# Normalises path separators and applies Windows-only case-folding for path containment checks.
+		def normalise_path_for_comparison(path)
+			normalised_path = File.expand_path(path).tr('\\', '/')
+			return normalised_path.downcase if windows_platform?
+
+			normalised_path
+		end
+		private_class_method :normalise_path_for_comparison
+
+		# Returns true when running on a Windows platform with case-insensitive default semantics.
+		def windows_platform?
+			RbConfig::CONFIG['host_os'].to_s.match?(/mswin|mingw|cygwin/i)
+		end
+		private_class_method :windows_platform?
 
 		# Normalises and validates fixture path arguments.
 		def normalise_fixture_path(file)
