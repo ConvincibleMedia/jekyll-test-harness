@@ -174,6 +174,24 @@ RSpec.describe JekyllTestHarness::Helpers do
 			expect(written_config['destination']).to eq(files.dir)
 		end
 	end
+
+	it 'warns and ignores symbol source/destination keys when provided through helper config calls' do
+		host = helper_host_class.new
+		host.jekyll_config(source: '/buffer/source', destination: '/buffer/destination')
+
+		expect(JekyllTestHarness::SiteHarness).to receive(:warn).with(/ignoring config\['source'\]/)
+		expect(JekyllTestHarness::SiteHarness).to receive(:warn).with(/ignoring config\['destination'\]/)
+
+		host.jekyll_build(
+			config: { source: '/inline/source', destination: '/inline/destination' },
+			files: minimal_site_files('Symbol safety test')
+		) do |_site, files|
+			written_config = YAML.safe_load(files.source_read('_config.yml'))
+			expect(written_config['source']).to eq(files.source_dir)
+			expect(written_config['destination']).to eq(files.dir)
+			expect(written_config.keys).not_to include(':source', ':destination')
+		end
+	end
 end
 
 RSpec.describe JekyllTestHarness do
@@ -186,14 +204,16 @@ RSpec.describe JekyllTestHarness do
 	it 'installs helpers into the global RSpec configuration' do
 		configuration = described_class.install!(framework: :rspec)
 		expect(configuration).to equal(::RSpec.configuration)
-		expect(::RSpec.configuration.singleton_class.included_modules).to include(JekyllTestHarness::Helpers)
+		probe_example_group = RSpec.describe('helper inclusion probe install') {}
+		expect(probe_example_group.instance_methods).to include(:jekyll_build, :jekyll_config, :jekyll_files)
 	end
 
 	it 'supports configure as an alias for install!' do
 		returned_configuration = described_class.configure(framework: :rspec)
 
 		expect(returned_configuration).to equal(::RSpec.configuration)
-		expect(::RSpec.configuration.singleton_class.included_modules).to include(JekyllTestHarness::Helpers)
+		probe_example_group = RSpec.describe('helper inclusion probe configure') {}
+		expect(probe_example_group.instance_methods).to include(:jekyll_build, :jekyll_config, :jekyll_files)
 	end
 
 	it 'allows framework to be omitted and auto-detected' do
@@ -206,10 +226,11 @@ RSpec.describe JekyllTestHarness do
 
 		begin
 			Dir.mktmpdir('jth-install-root-') do |project_root|
-				Dir.chdir(project_root)
-				described_class.install!(framework: :rspec, failures: :keep, output: 'tmp/sites')
-				expect(JekyllTestHarness::Configuration.failure_mode).to eq(:keep)
-				expect(JekyllTestHarness::Configuration.output).to eq(File.expand_path('tmp/sites', project_root))
+				Dir.chdir(project_root) do
+					described_class.install!(framework: :rspec, failures: :keep, output: 'tmp/sites')
+					expect(JekyllTestHarness::Configuration.failure_mode).to eq(:keep)
+					expect(JekyllTestHarness::Configuration.output).to eq(File.expand_path('tmp/sites', project_root))
+				end
 			end
 		ensure
 			Dir.chdir(original_directory)

@@ -3,6 +3,10 @@
 require_relative '../spec_helper'
 
 RSpec.describe JekyllTestHarness::Files do
+	it 'keeps the legacy Paths constant as an alias of Files' do
+		expect(JekyllTestHarness::Paths).to equal(JekyllTestHarness::Files)
+	end
+
 	it 'builds output and source paths and reads files from each root' do
 		JekyllTestHarness::TemporaryDirectory.with_dir do |temporary_directory|
 			source = File.join(temporary_directory, 'site')
@@ -55,6 +59,14 @@ RSpec.describe JekyllTestHarness::Files do
 			expect(files.list('docs')).to eq(['docs/about.html', 'docs/index.html'])
 			expect(files.source_list).to eq(['docs/source.md'])
 			expect(files.source_list('docs/source.md')).to eq(['docs/source.md'])
+		end
+	end
+
+	it 'returns an empty list when list roots do not exist' do
+		JekyllTestHarness::TemporaryDirectory.with_dir do |temporary_directory|
+			files = described_class.new(source_dir: File.join(temporary_directory, 'site'), dir: File.join(temporary_directory, '_site'))
+			expect(files.list('missing')).to eq([])
+			expect(files.source_list('missing')).to eq([])
 		end
 	end
 

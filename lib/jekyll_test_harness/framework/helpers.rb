@@ -32,9 +32,10 @@ module JekyllTestHarness
 		end
 
 		# Merges config into the buffered build config and returns the merged addition.
-		def jekyll_config(config = nil, file: nil)
+		def jekyll_config(config = nil, file: nil, **keyword_config)
 			fixture_config = file.nil? ? {} : JekyllTestHarness::FixtureLoader.read_yaml_hash(file: file, project_root: JekyllTestHarness::Configuration.project_root)
 			inline_config = coerce_hash(config, field_name: 'config')
+			inline_config = jekyll_merge(inline_config, coerce_hash(keyword_config, field_name: 'config')) unless keyword_config.empty?
 			resolved_config = jekyll_merge(fixture_config, inline_config)
 			@jekyll_buffered_config = jekyll_merge(jekyll_buffered_config, resolved_config)
 			JekyllTestHarness::DataTools.deep_clone(resolved_config)

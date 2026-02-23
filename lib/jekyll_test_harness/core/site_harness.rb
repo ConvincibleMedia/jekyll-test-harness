@@ -94,11 +94,13 @@ module JekyllTestHarness
 			sanitised_config
 		end
 
-		# Deletes a forbidden config key and emits a warning with the attempted value.
+		# Deletes forbidden config keys (string or symbol) and emits a warning with attempted values.
 		def self.warn_forbidden_config_key!(config_hash, key)
-			return unless config_hash.key?(key)
+			matching_keys = config_hash.keys.select { |candidate_key| candidate_key.to_s == key }
+			return if matching_keys.empty?
 
-			attempted_value = config_hash.delete(key)
+			attempted_values = matching_keys.map { |matching_key| config_hash.delete(matching_key) }
+			attempted_value = attempted_values.length == 1 ? attempted_values.first : attempted_values
 			warn("JekyllTestHarness: ignoring config['#{key}'] (#{attempted_value.inspect}). The harness-managed temporary #{key} always wins.")
 		end
 

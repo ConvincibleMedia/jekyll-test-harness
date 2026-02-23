@@ -74,10 +74,11 @@ module JekyllTestHarness
 			end
 
 			# Emits YAML front matter wrapped with separators and a trailing blank line.
-			def frontmatter(hash = nil, file: nil)
+			def frontmatter(hash = nil, file: nil, **keyword_hash)
 				@used_content_helpers = true
 				fixture_hash = file.nil? ? {} : FixtureLoader.read_yaml_hash(file: file, project_root: @project_root)
 				inline_hash = coerce_hash(hash, argument_name: 'frontmatter hash')
+				inline_hash = DataTools.deep_merge_hashes(inline_hash, coerce_hash(keyword_hash, argument_name: 'frontmatter hash')) unless keyword_hash.empty?
 				merged_hash = DataTools.deep_merge_hashes(fixture_hash, inline_hash)
 
 				yaml_payload = YAML.dump(merged_hash).sub(/\A---[ \t]*\n?/, '')

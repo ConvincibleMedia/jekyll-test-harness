@@ -47,8 +47,6 @@ module JekyllTestHarness
 
 		return resolve_automatic_framework if normalised_framework == :auto
 
-		raise framework_not_loaded_error(normalised_framework) unless framework_available?(normalised_framework)
-
 		normalised_framework
 	end
 	private_class_method :resolve_framework

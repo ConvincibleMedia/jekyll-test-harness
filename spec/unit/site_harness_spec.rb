@@ -85,6 +85,14 @@ RSpec.describe JekyllTestHarness::SiteHarness do
 			expect(merged.files).to eq('a.txt' => 'base', 'b.txt' => 'override')
 		end
 
+		it 'raises when merging a blueprint with a non-blueprint value' do
+			blueprint = JekyllTestHarness::JekyllBlueprint.new
+
+			expect do
+				described_class.jekyll_merge(blueprint, {})
+			end.to raise_error(ArgumentError, /must both be JekyllBlueprint values/)
+		end
+
 		it 'raises for unsupported merge types' do
 			expect do
 				described_class.jekyll_merge('not-a-hash', {})
@@ -143,6 +151,24 @@ RSpec.describe JekyllTestHarness::SiteHarness do
 				expect(written_config['source']).to eq(files.source_dir)
 				expect(written_config['destination']).to eq(files.dir)
 				expect(written_config.dig('my_plugin', 'mode')).to eq('sanitised')
+			end
+		end
+
+		it 'ignores symbol source and destination config keys and warns for both keys' do
+			config = {
+				source: '/symbol/source',
+				destination: '/symbol/destination',
+				'my_plugin' => { 'mode' => 'symbol-sanitised' }
+			}
+
+			expect(described_class).to receive(:warn).with(/ignoring config\['source'\]/)
+			expect(described_class).to receive(:warn).with(/ignoring config\['destination'\]/)
+
+			described_class.with_site(config: config, files: minimal_site_files('Symbol sanitisation')) do |_site, files|
+				written_config = YAML.safe_load(files.source_read('_config.yml'))
+				expect(written_config['source']).to eq(files.source_dir)
+				expect(written_config['destination']).to eq(files.dir)
+				expect(written_config.keys).not_to include(':source', ':destination')
 			end
 		end
 

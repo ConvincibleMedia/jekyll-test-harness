@@ -1,0 +1,8 @@
+collections:
+  guides:
+    output: true
+    permalink: /guides/:name.html
+my_plugin:
+  mode: fixture-base
+  flags:
+    base: true

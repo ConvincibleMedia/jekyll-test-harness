@@ -1,0 +1,4 @@
+my_plugin:
+  mode: fixture-feature
+  flags:
+    feature: true

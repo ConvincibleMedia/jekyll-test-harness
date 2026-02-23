@@ -40,6 +40,12 @@ RSpec.describe JekyllTestHarness::Configuration do
 			expect(described_class.output).to be_nil
 		end
 
+		it 'keeps absolute output paths unchanged' do
+			absolute_output = File.expand_path('/tmp/jth-absolute')
+			described_class.configure_runtime!(failures: :clean, output: absolute_output, project_root: '/workspace')
+			expect(described_class.output).to eq(absolute_output)
+		end
+
 		it 'raises a clear error for unsupported failures modes' do
 			expect do
 				described_class.configure_runtime!(failures: :unknown, output: nil, project_root: '/workspace')
