@@ -60,10 +60,20 @@ module JekyllTestHarness
 
 		# Validates and normalises failure mode values.
 		def normalise_failure_mode(failures)
-			normalised_failures = (failures || DEFAULT_FAILURE_MODE).to_sym
+			selected_failures = failures.nil? ? DEFAULT_FAILURE_MODE : failures
+			normalised_failures = normalise_symbol_option(
+				option_name: 'failures',
+				value: selected_failures,
+				usage: 'Use `failures: :clean` (default) or `failures: :keep`.'
+			)
 			return normalised_failures if SUPPORTED_FAILURE_MODES.include?(normalised_failures)
 
-			raise ArgumentError, "Unsupported failures mode '#{failures}'. Supported values: #{SUPPORTED_FAILURE_MODES.map(&:inspect).join(', ')}."
+			raise ArgumentError, ValidationMessages.unsupported_value(
+				argument_name: 'failures',
+				value: failures,
+				supported_values: SUPPORTED_FAILURE_MODES,
+				usage: 'Use `failures: :clean` (default) or `failures: :keep`.'
+			)
 		end
 		private_class_method :normalise_failure_mode
 
@@ -71,14 +81,36 @@ module JekyllTestHarness
 		def normalise_output(output, project_root)
 			return nil if output.nil?
 
-			output_path = output.to_s
-			raise ArgumentError, 'output must not be empty.' if output_path.strip.empty?
+			output_path = normalise_path_argument(
+				argument_name: 'output',
+				value: output,
+				usage: "Use `nil` for system temp, a relative String like `'tmp/jekyll-sites'`, or an absolute path."
+			)
+			raise ArgumentError, '`output` must not be empty.' if output_path.strip.empty?
 
 			return File.expand_path(output_path) if Pathname.new(output_path).absolute?
 
 			File.expand_path(output_path, project_root)
 		end
 		private_class_method :normalise_output
+
+		# Normalises Symbol/String option values and rejects invalid input types.
+		def normalise_symbol_option(option_name:, value:, usage:)
+			return value if value.is_a?(Symbol)
+			return value.strip.to_sym if value.is_a?(String) && !value.strip.empty?
+
+			raise ArgumentError, ValidationMessages.type_error(argument_name: option_name, expected: 'a Symbol or non-empty String', value: value, usage: usage)
+		end
+		private_class_method :normalise_symbol_option
+
+		# Normalises path-like arguments and rejects unsupported input types.
+		def normalise_path_argument(argument_name:, value:, usage:)
+			return value if value.is_a?(String)
+			return value.to_path.to_s if value.respond_to?(:to_path)
+
+			raise ArgumentError, ValidationMessages.type_error(argument_name: argument_name, expected: 'a String path or Pathname', value: value, usage: usage)
+		end
+		private_class_method :normalise_path_argument
 	end
 end
 

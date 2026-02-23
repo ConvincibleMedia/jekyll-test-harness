@@ -14,39 +14,29 @@ group :test do
 end
 ```
 
-Load the harness into RSpec:
+Load the harness:
 
 ```ruby
-# spec/spec_helper.rb
-require 'rspec'
+# spec/spec_helper.rb or test/test_helper.rb
+require 'rspec' # or below
+require 'minitest/autorun' # or above
 require 'jekyll_test_harness'
 require 'my_plugin'
 
-RSpec.configure do |config|
-  JekyllTestHarness.install!(framework: :rspec)
-end
+JekyllTestHarness.install!
 ```
 
-Load the harness into Minitest:
-
-```ruby
-# test/test_helper.rb
-require 'minitest/autorun'
-require 'jekyll_test_harness'
-require 'my_plugin'
-
-JekyllTestHarness.install!(framework: :minitest)
-```
-
-`JekyllTestHarness.install!` auto-detects your test framework. However this can also be configured explicitly along with other global configuration:
+`JekyllTestHarness.install!` auto-detects your test framework. You can also pass global configuration options:
 
 ```ruby
 JekyllTestHarness.install!(
-  framework: :rspec,
+  framework: :rspec # or :minitest, to be explicit
   failures: :clean,          # or :keep
   output: nil                # nil => system temp, or project-relative string like 'tmp/jekyll-sites'
 )
 ```
+
+If both RSpec and Minitest are loaded in the same process, set `framework:` explicitly.
 
 Options:
 

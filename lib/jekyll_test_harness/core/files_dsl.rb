@@ -31,7 +31,7 @@ module JekyllTestHarness
 			# Creates a nested folder. The block can define additional folders or files.
 			def folder(name, &block)
 				folder_tree = {}
-				@tree[name.to_s] = folder_tree
+				@tree[normalise_entry_name(name, entry_type: 'folder')] = folder_tree
 				return folder_tree if block.nil?
 
 				self.class.new(tree: folder_tree, host_context: @host_context, project_root: @project_root).evaluate(&block)
@@ -39,7 +39,7 @@ module JekyllTestHarness
 
 			# Creates a file where the block defines its final string contents.
 			def file(name, &block)
-				@tree[name.to_s] = FileContext.new(host_context: @host_context, project_root: @project_root).evaluate(&block)
+				@tree[normalise_entry_name(name, entry_type: 'file')] = FileContext.new(host_context: @host_context, project_root: @project_root).evaluate(&block)
 			end
 
 			# Evaluates folder/file calls for this level.
@@ -54,12 +54,20 @@ module JekyllTestHarness
 			def method_missing(method_name, *arguments, &block)
 				return @host_context.public_send(method_name, *arguments, &block) if @host_context && @host_context.respond_to?(method_name)
 
-				super
+				raise NoMethodError, "Unknown helper `#{method_name}` in jekyll_files tree context. Available DSL methods: `folder` and `file`."
 			end
 
 			# Mirrors delegated method support checks for introspection.
 			def respond_to_missing?(method_name, include_private = false)
 				(@host_context && @host_context.respond_to?(method_name, include_private)) || super
+			end
+
+			# Normalises file/folder names and rejects empty values that are hard to debug.
+			def normalise_entry_name(name, entry_type:)
+				entry_name = name.to_s
+				raise ArgumentError, "#{entry_type} name must not be empty." if entry_name.strip.empty?
+
+				entry_name
 			end
 		end
 
@@ -121,7 +129,7 @@ module JekyllTestHarness
 				when Hash
 					YAML.dump(returned_value)
 				else
-					returned_value.to_s
+					raise ArgumentError, "File DSL block must return `String`, `Array`, `Hash`, or `nil` when not using `frontmatter`/`contents`. Received #{ValidationMessages.describe_value(returned_value)}."
 				end
 			end
 
@@ -130,14 +138,14 @@ module JekyllTestHarness
 				return {} if value.nil?
 				return value if value.is_a?(Hash)
 
-				raise ArgumentError, "#{argument_name} must be a Hash when provided."
+				raise ArgumentError, ValidationMessages.type_error(argument_name: argument_name, expected: 'a Hash', value: value, usage: "Pass `#{argument_name}` as a hash, for example: `#{argument_name}(title: 'My page')`.")
 			end
 
 			# Delegates unknown helper calls to the outer test context.
 			def method_missing(method_name, *arguments, &block)
 				return @host_context.public_send(method_name, *arguments, &block) if @host_context && @host_context.respond_to?(method_name)
 
-				super
+				raise NoMethodError, "Unknown helper `#{method_name}` in jekyll_files file context. Available DSL methods: `frontmatter` and `contents`."
 			end
 
 			# Mirrors delegated method checks for introspection.

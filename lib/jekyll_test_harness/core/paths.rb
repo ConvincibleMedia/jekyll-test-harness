@@ -45,14 +45,16 @@ module JekyllTestHarness
 
 		# Resolves a relative path and prevents directory traversal outside the root.
 		def resolve_relative_path(root_path, relative_path)
-			raise ArgumentError, 'relative_path must not be absolute.' if relative_path.to_s.start_with?('/')
-			raise ArgumentError, 'relative_path must not be absolute.' if relative_path.to_s.match?(/\A[A-Za-z]:[\\\/]/)
+			normalised_relative_path = normalise_relative_path(relative_path)
+			if absolute_path?(normalised_relative_path)
+				raise ArgumentError, "relative_path must not be absolute. Received #{ValidationMessages.describe_value(relative_path)}."
+			end
 
-			resolved_path = File.expand_path(File.join(root_path, relative_path.to_s))
+			resolved_path = File.expand_path(File.join(root_path, normalised_relative_path))
 			expanded_root = File.expand_path(root_path)
 			return resolved_path if resolved_path == expanded_root || resolved_path.start_with?("#{expanded_root}#{File::SEPARATOR}")
 
-			raise ArgumentError, "relative_path escapes the site root: #{relative_path}"
+			raise ArgumentError, "relative_path escapes the site root: #{normalised_relative_path.inspect}. Site root: #{expanded_root}."
 		end
 
 		# Lists file paths for either the root or a subfolder, always returned relative to root_path.
@@ -66,6 +68,24 @@ module JekyllTestHarness
 				Dir.glob(File.join(search_root, '**', '*')).select { |candidate_path| File.file?(candidate_path) }
 			end
 			paths.map { |absolute_path| absolute_path.sub("#{File.expand_path(root_path)}#{File::SEPARATOR}", '').tr('\\', '/') }.sort
+		end
+
+		# Normalises relative path values and rejects invalid types.
+		def normalise_relative_path(relative_path)
+			return relative_path if relative_path.is_a?(String)
+			return relative_path.to_path.to_s if relative_path.respond_to?(:to_path)
+
+			raise ArgumentError, ValidationMessages.type_error(
+				argument_name: 'relative_path',
+				expected: 'a String path or Pathname',
+				value: relative_path,
+				usage: "Use a path relative to the build root, such as `'docs/index.html'`."
+			)
+		end
+
+		# Returns true when a candidate path is absolute in Unix or Windows forms.
+		def absolute_path?(candidate_path)
+			candidate_path.start_with?('/') || candidate_path.match?(/\A[A-Za-z]:[\\\/]/)
 		end
 	end
 

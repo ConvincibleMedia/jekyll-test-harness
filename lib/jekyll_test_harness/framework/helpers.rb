@@ -43,6 +43,8 @@ module JekyllTestHarness
 
 		# Builds files with the folder/file DSL, buffers them, and returns the generated hash.
 		def jekyll_files(&block)
+			raise MissingBlockError, ValidationMessages.missing_block(method_name: 'jekyll_files', usage: 'jekyll_files do ... end') unless block_given?
+
 			resolved_files = JekyllTestHarness::FilesDsl.new(host_context: self, project_root: JekyllTestHarness::Configuration.project_root).build(&block)
 			@jekyll_buffered_files = jekyll_merge(jekyll_buffered_files, resolved_files)
 			JekyllTestHarness::DataTools.deep_clone(resolved_files)
@@ -74,7 +76,7 @@ module JekyllTestHarness
 			return {} if value.nil?
 			return JekyllTestHarness::DataTools.deep_clone(value) if value.is_a?(Hash)
 
-			raise ArgumentError, "#{field_name} must be a Hash."
+			raise ArgumentError, ValidationMessages.type_error(argument_name: field_name, expected: 'a Hash', value: value, usage: "Pass `#{field_name}: { ... }`.")
 		end
 
 		# Normalises optional blueprint arguments for jekyll_build.
@@ -82,7 +84,12 @@ module JekyllTestHarness
 			return JekyllTestHarness::JekyllBlueprint.new if value.nil?
 			return value if value.is_a?(JekyllTestHarness::JekyllBlueprint)
 
-			raise ArgumentError, 'jekyll_build first argument must be a JekyllBlueprint when provided.'
+			raise ArgumentError, ValidationMessages.type_error(
+				argument_name: 'jekyll_build first argument',
+				expected: 'a JekyllBlueprint',
+				value: value,
+				usage: 'Use `jekyll_blueprint(...)` and pass it as the first argument to `jekyll_build`.'
+			)
 		end
 	end
 end

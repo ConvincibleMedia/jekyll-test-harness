@@ -20,7 +20,12 @@ module JekyllTestHarness
 			target_minitest_test_case.include(Helpers)
 			target_minitest_test_case
 		else
-			raise ArgumentError, "Unsupported framework '#{selected_framework}'. Supported frameworks: #{SUPPORTED_INSTALL_FRAMEWORKS.map(&:inspect).join(', ')}."
+			raise ArgumentError, ValidationMessages.unsupported_value(
+				argument_name: 'framework',
+				value: selected_framework,
+				supported_values: SUPPORTED_INSTALL_FRAMEWORKS,
+				usage: "Use `framework: :rspec` or `framework: :minitest`."
+			)
 		end
 	end
 
@@ -40,9 +45,14 @@ module JekyllTestHarness
 
 	# Resolves explicit and automatic framework selection.
 	def resolve_framework(framework)
-		normalised_framework = framework.to_sym
+		normalised_framework = normalise_framework(framework)
 		unless SUPPORTED_INSTALL_FRAMEWORKS.include?(normalised_framework)
-			raise ArgumentError, "Unsupported framework '#{framework}'. Supported frameworks: #{SUPPORTED_INSTALL_FRAMEWORKS.map(&:inspect).join(', ')}."
+			raise ArgumentError, ValidationMessages.unsupported_value(
+				argument_name: 'framework',
+				value: framework,
+				supported_values: SUPPORTED_INSTALL_FRAMEWORKS,
+				usage: "Call `JekyllTestHarness.install!(framework: :rspec)` or `JekyllTestHarness.install!(framework: :minitest)`."
+			)
 		end
 
 		return resolve_automatic_framework if normalised_framework == :auto
@@ -50,6 +60,20 @@ module JekyllTestHarness
 		normalised_framework
 	end
 	private_class_method :resolve_framework
+
+	# Normalises the framework argument while validating supported input types.
+	def normalise_framework(framework)
+		return framework if framework.is_a?(Symbol)
+		return framework.strip.to_sym if framework.is_a?(String) && !framework.strip.empty?
+
+		raise ArgumentError, ValidationMessages.type_error(
+			argument_name: 'framework',
+			expected: 'a Symbol or non-empty String',
+			value: framework,
+			usage: "Use one of `:auto`, `:rspec`, or `:minitest`."
+		)
+	end
+	private_class_method :normalise_framework
 
 	# Selects a single framework from loaded frameworks or raises clear guidance.
 	def resolve_automatic_framework
@@ -110,9 +134,9 @@ module JekyllTestHarness
 	def framework_not_loaded_error(framework)
 		case framework
 		when :rspec
-			NameError.new("RSpec is not available. Require 'rspec' before calling JekyllTestHarness.install!(framework: :rspec).")
+			NameError.new("RSpec is not available. Require `rspec` before calling `JekyllTestHarness.install!(framework: :rspec)`.")
 		when :minitest
-			NameError.new("Minitest::Test is not available. Require 'minitest/autorun' before calling JekyllTestHarness.install!(framework: :minitest).")
+			NameError.new("Minitest::Test is not available. Require `minitest/autorun` before calling `JekyllTestHarness.install!(framework: :minitest)`.")
 		else
 			NameError.new("Framework '#{framework}' is not available.")
 		end
@@ -121,9 +145,14 @@ module JekyllTestHarness
 
 	# Validates that framework include targets can accept helper module inclusion.
 	def validate_include_target!(target, target_description)
-		return if target.respond_to?(:include)
+		return if target.is_a?(Module)
 
-		raise ArgumentError, "#{target_description} must respond to #include."
+		raise ArgumentError, ValidationMessages.type_error(
+			argument_name: target_description,
+			expected: 'a Class or Module',
+			value: target,
+			usage: "Pass `minitest_test_case: Minitest::Test` (or a subclass)."
+		)
 	end
 	private_class_method :validate_include_target!
 end

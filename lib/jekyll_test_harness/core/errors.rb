@@ -40,4 +40,39 @@ module JekyllTestHarness
 			].join("\n")
 		end
 	end
+
+	# Builds consistent, actionable validation messages for invalid harness usage.
+	module ValidationMessages
+		module_function
+
+		# Describes a runtime value with a class name and a safely-truncated inspect payload.
+		def describe_value(value)
+			inspected_value = value.inspect
+			inspected_value = "#{inspected_value[0, 157]}..." if inspected_value.length > 160
+			"#{inspected_value} (#{value.class})"
+		end
+
+		# Builds an error message for arguments that do not match the expected type.
+		def type_error(argument_name:, expected:, value:, usage: nil)
+			append_usage("#{argument_name} must be #{expected}. Received #{describe_value(value)}.", usage)
+		end
+
+		# Builds an error message for unsupported option values.
+		def unsupported_value(argument_name:, value:, supported_values:, usage: nil)
+			supported_description = supported_values.map(&:inspect).join(', ')
+			append_usage("Unsupported value for #{argument_name}: #{describe_value(value)}. Supported values: #{supported_description}.", usage)
+		end
+
+		# Builds an error message for APIs that require a block.
+		def missing_block(method_name:, usage:)
+			"#{method_name} requires a block. Usage: #{usage}."
+		end
+
+		# Appends usage guidance only when it is present.
+		def append_usage(message, usage)
+			return message if usage.nil? || usage.to_s.strip.empty?
+
+			"#{message} #{usage}"
+		end
+	end
 end

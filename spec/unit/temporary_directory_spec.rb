@@ -93,4 +93,10 @@ RSpec.describe JekyllTestHarness::TemporaryDirectory do
 			expect(Dir.exist?(configured_root)).to be(true)
 		end
 	end
+
+	it 'raises a clear error for invalid root_directory argument types' do
+		expect do
+			described_class.with_dir(root_directory: Object.new) { |_directory| }
+		end.to raise_error(ArgumentError, /root_directory must be a String path or Pathname/)
+	end
 end

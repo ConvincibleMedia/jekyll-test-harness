@@ -8,7 +8,7 @@ module JekyllTestHarness
 	class SiteHarness
 		# Builds a site, yields it, then handles temporary directory cleanup.
 		def self.with_site(config: {}, files: {}, context: nil)
-			raise MissingBlockError, 'SiteHarness.with_site requires a block.' unless block_given?
+			raise MissingBlockError, ValidationMessages.missing_block(method_name: 'SiteHarness.with_site', usage: 'jekyll_build(files: { ... }) { |site, files| ... }') unless block_given?
 
 			TemporaryDirectory.with_dir(
 				prefix: Configuration.temporary_directory_prefix,
@@ -38,7 +38,7 @@ module JekyllTestHarness
 				DataTools.deep_merge_hashes(base, new_value)
 			when JekyllBlueprint
 				unless new_value.is_a?(JekyllBlueprint)
-					raise ArgumentError, 'jekyll_merge blueprint inputs must both be JekyllBlueprint values.'
+					raise ArgumentError, "jekyll_merge blueprint inputs must both be JekyllBlueprint values. Received `new_value`: #{ValidationMessages.describe_value(new_value)}."
 				end
 
 				JekyllBlueprint.new(
@@ -46,7 +46,7 @@ module JekyllTestHarness
 					files: DataTools.deep_merge_hashes(base.files, new_value.files)
 				)
 			else
-				raise ArgumentError, "jekyll_merge does not support base value type #{base.class}."
+				raise ArgumentError, "jekyll_merge does not support base value type #{base.class}. Supported base types: Hash and JekyllBlueprint."
 			end
 		end
 
@@ -83,7 +83,7 @@ module JekyllTestHarness
 			return {} if value.nil?
 			return DataTools.deep_clone(value) if value.is_a?(Hash)
 
-			raise ArgumentError, "#{field_name} must be a Hash."
+			raise ArgumentError, ValidationMessages.type_error(argument_name: field_name, expected: 'a Hash', value: value, usage: "Pass `#{field_name}: { ... }`.")
 		end
 
 		# Removes forbidden source/destination overrides and warns the caller when supplied.

@@ -20,7 +20,12 @@ module JekyllTestHarness
 		def validate_hash!(value, field_name)
 			return if value.is_a?(Hash)
 
-			raise ArgumentError, "JekyllBlueprint #{field_name} must be a Hash."
+			raise ArgumentError, ValidationMessages.type_error(
+				argument_name: "JekyllBlueprint #{field_name}",
+				expected: 'a Hash',
+				value: value,
+				usage: 'Build blueprints with `jekyll_blueprint(config: { ... }, files: { ... })`.'
+			)
 		end
 	end
 end

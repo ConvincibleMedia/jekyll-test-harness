@@ -13,9 +13,9 @@ module JekyllTestHarness
 
 		# Yields a temporary directory and removes it afterwards unless retention is requested.
 		def with_dir(prefix: Configuration.temporary_directory_prefix, root_directory: nil, label: nil, keep_on_error: false)
-			raise MissingBlockError, 'TemporaryDirectory.with_dir requires a block.' unless block_given?
+			raise MissingBlockError, ValidationMessages.missing_block(method_name: 'TemporaryDirectory.with_dir', usage: 'TemporaryDirectory.with_dir { |directory| ... }') unless block_given?
 
-			root_directory_path = root_directory.nil? ? Dir.tmpdir : File.expand_path(root_directory.to_s)
+			root_directory_path = normalise_root_directory(root_directory)
 			temporary_directory_path = create_directory(root_directory: root_directory_path, prefix: prefix, label: label)
 			yield temporary_directory_path
 		ensure
@@ -74,6 +74,28 @@ module JekyllTestHarness
 			end
 		end
 		private_class_method :next_directory_counter
+
+		# Normalises custom root directory values for temporary site creation.
+		def normalise_root_directory(root_directory)
+			return Dir.tmpdir if root_directory.nil?
+
+			root_directory_path = if root_directory.is_a?(String)
+				root_directory
+			elsif root_directory.respond_to?(:to_path)
+				root_directory.to_path.to_s
+			else
+				raise ArgumentError, ValidationMessages.type_error(
+					argument_name: 'root_directory',
+					expected: 'a String path or Pathname',
+					value: root_directory,
+					usage: 'Leave `root_directory` unset for system temp, or pass a writable absolute/relative path.'
+				)
+			end
+			raise ArgumentError, 'root_directory must not be empty.' if root_directory_path.strip.empty?
+
+			File.expand_path(root_directory_path)
+		end
+		private_class_method :normalise_root_directory
 
 	end
 end

@@ -69,6 +69,24 @@ RSpec.describe JekyllTestHarness::FilesDsl do
 		end.to raise_error(ArgumentError, /frontmatter hash must be a Hash/)
 	end
 
+	it 'raises a clear error when a file block returns an unsupported value type' do
+		expect do
+			described_class.new(host_context: host_context, project_root: project_root).build do
+				file 'broken.md' do
+					Object.new
+				end
+			end
+		end.to raise_error(ArgumentError, /File DSL block must return/)
+	end
+
+	it 'raises a clear error when a folder or file name is blank' do
+		expect do
+			described_class.new(host_context: host_context, project_root: project_root).build do
+				folder '   '
+			end
+		end.to raise_error(ArgumentError, /folder name must not be empty/)
+	end
+
 	it 'raises when a fixture path escapes the configured project root' do
 		expect do
 			described_class.new(host_context: host_context, project_root: project_root).build do

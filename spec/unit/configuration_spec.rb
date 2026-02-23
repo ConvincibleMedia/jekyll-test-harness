@@ -49,13 +49,25 @@ RSpec.describe JekyllTestHarness::Configuration do
 		it 'raises a clear error for unsupported failures modes' do
 			expect do
 				described_class.configure_runtime!(failures: :unknown, output: nil, project_root: '/workspace')
-			end.to raise_error(ArgumentError, /Unsupported failures mode/)
+			end.to raise_error(ArgumentError, /Unsupported value for failures/)
+		end
+
+		it 'raises a clear error for invalid failures value types' do
+			expect do
+				described_class.configure_runtime!(failures: Object.new, output: nil, project_root: '/workspace')
+			end.to raise_error(ArgumentError, /failures must be a Symbol or non-empty String/)
 		end
 
 		it 'raises a clear error for empty output strings' do
 			expect do
 				described_class.configure_runtime!(failures: :clean, output: '   ', project_root: '/workspace')
 			end.to raise_error(ArgumentError, /must not be empty/)
+		end
+
+		it 'raises a clear error for invalid output value types' do
+			expect do
+				described_class.configure_runtime!(failures: :clean, output: Object.new, project_root: '/workspace')
+			end.to raise_error(ArgumentError, /output must be a String path or Pathname/)
 		end
 	end
 

@@ -25,7 +25,7 @@ RSpec.describe JekyllTestHarness do
 	it 'raises a clear error when Minitest target is invalid' do
 		expect do
 			described_class.install!(framework: :minitest, minitest_test_case: Object.new)
-		end.to raise_error(ArgumentError, /must respond to #include/)
+		end.to raise_error(ArgumentError, /must be a Class or Module/)
 	end
 
 	it 'uses Minitest::Test as the default class when available' do

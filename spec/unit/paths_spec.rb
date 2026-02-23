@@ -91,5 +91,12 @@ RSpec.describe JekyllTestHarness::Files do
 			expect { files.path('C:/Windows/system.ini') }.to raise_error(ArgumentError)
 		end
 	end
+
+	it 'rejects non-path values with a clear error' do
+		JekyllTestHarness::TemporaryDirectory.with_dir do |temporary_directory|
+			files = described_class.new(source_dir: File.join(temporary_directory, 'site'), dir: File.join(temporary_directory, '_site'))
+			expect { files.path(Object.new) }.to raise_error(ArgumentError, /relative_path must be a String path or Pathname/)
+		end
+	end
 end
 

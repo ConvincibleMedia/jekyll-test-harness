@@ -26,6 +26,18 @@ RSpec.describe JekyllTestHarness::FixtureLoader do
 			text = described_class.read_text(file: 'spec/fixtures/loader/sample.txt', project_root: project_root)
 			expect(text).to eq("Loader fixture sample text.\n")
 		end
+
+		it 'raises a clear error when the fixture file does not exist' do
+			expect do
+				described_class.read_text(file: 'spec/fixtures/loader/missing.txt', project_root: project_root)
+			end.to raise_error(ArgumentError, /Fixture file was not found/)
+		end
+
+		it 'raises a clear error when file is not a path-like value' do
+			expect do
+				described_class.read_text(file: Object.new, project_root: project_root)
+			end.to raise_error(ArgumentError, /file must be a String path or Pathname/)
+		end
 	end
 
 	describe '.read_yaml_hash' do

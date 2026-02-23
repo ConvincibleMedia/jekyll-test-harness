@@ -41,6 +41,14 @@ RSpec.describe JekyllTestHarness::Helpers do
 		end.to raise_error(JekyllTestHarness::MissingBlockError)
 	end
 
+	it 'raises a harness error when jekyll_files is called without a block' do
+		host = helper_host_class.new
+
+		expect do
+			host.jekyll_files
+		end.to raise_error(JekyllTestHarness::MissingBlockError, /jekyll_files do/)
+	end
+
 	it 'creates JekyllBlueprint values from config and files' do
 		host = helper_host_class.new
 		blueprint = host.jekyll_blueprint(config: { 'a' => 1 }, files: { 'index.md' => 'body' })
@@ -271,12 +279,18 @@ RSpec.describe JekyllTestHarness do
 	it 'raises a clear error for unsupported framework values' do
 		expect do
 			described_class.install!(framework: :unknown)
-		end.to raise_error(ArgumentError, /Unsupported framework/)
+		end.to raise_error(ArgumentError, /Unsupported value for framework/)
+	end
+
+	it 'raises a clear error for invalid framework argument types' do
+		expect do
+			described_class.install!(framework: nil)
+		end.to raise_error(ArgumentError, /framework must be a Symbol or non-empty String/)
 	end
 
 	it 'raises a clear error for unsupported failures values' do
 		expect do
 			described_class.install!(framework: :rspec, failures: :unknown)
-		end.to raise_error(ArgumentError, /Unsupported failures mode/)
+		end.to raise_error(ArgumentError, /Unsupported value for failures/)
 	end
 end
