@@ -51,12 +51,6 @@ Options:
   - absolute path: used as-is.
 
 
-## Compatibility
-
-- Ruby: `>= 2.4.4`
-- Jekyll: `>= 3.8.5`, `< 5.0`
-
-
 ## Test DSL
 
 After calling `install!`, your examples/tests get these helper methods:
@@ -221,11 +215,3 @@ RSpec.describe 'my plugin integration' do
   end
 end
 ```
-
-## Release Notes
-
-See `CHANGELOG.md`.
-
-## Licence
-
-`jekyll-test-harness` is licensed under `LGPL-3.0-or-later`. See `LICENSE.txt`.
