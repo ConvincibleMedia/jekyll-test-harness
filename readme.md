@@ -28,7 +28,10 @@ require 'my_plugin'
 JekyllTestHarness.install!
 ```
 
-`JekyllTestHarness.install!` auto-detects your test framework. You can also pass global configuration options:
+
+## Configuration
+
+You can also pass global configuration options:
 
 ```ruby
 JekyllTestHarness.install!(
@@ -38,20 +41,17 @@ JekyllTestHarness.install!(
 )
 ```
 
-If both RSpec and Minitest are loaded in the same process, set `framework:` explicitly.
-
-Options:
-
-- `failures:`
-  - `:clean` (default): remove temporary site directories after failures.
-  - `:keep`: keep failed build directories for debugging.
-- `output:`
-  - `nil` (default): build under system temp.
-  - relative path: resolved from the project root captured during `install!`.
-  - absolute path: used as-is.
+* `framework`: `:rspec` or `:minitest`. If not given, the framework you are using is auto-detected. If both RSpec and Minitest are loaded in the same process, set `framework:` explicitly.
+* `failures:`
+  * `:clean` (default): remove temporary site directories after failures.
+  * `:keep`: keep failed build directories for debugging.
+* `output:`
+  * `nil` (default): build under system temp directory.
+  * relative path: resolved from the project root captured during `install!`.
+  * absolute path: used as-is.
 
 
-## Test DSL
+## DSL
 
 After calling `install!`, your examples/tests get these helper methods:
 
@@ -61,7 +61,10 @@ After calling `install!`, your examples/tests get these helper methods:
 - `jekyll_blueprint(config:, files:)`
 - `jekyll_merge(base, new)`
 
-### `jekyll_build`
+Each method is explained in the following sections.
+
+
+## `jekyll_build`
 
 Builds a fresh throwaway Jekyll site for one test, runs a real Jekyll build (`Jekyll::Site#process`), and yields:
 
@@ -104,27 +107,26 @@ Source inspection methods are also available:
 
 `relative_path` arguments are validated to prevent path traversal outside the temporary site.
 
-### `jekyll_config(hash = nil, file: nil)`
+
+## `jekyll_config`
 
 Builds config data and appends it to the internal config buffer.
 
-- `hash` can be provided directly.
-- `file:` loads YAML from a fixture path relative to project root.
-- if both are provided, `hash` merges over loaded fixture YAML.
+```ruby
+jekyll_config({ email: 'my@email.com' })
+jekyll_config(file: 'fixture.yml')
+```
 
-Each call returns the resolved hash and merges it into the buffer.
+`jekyll_config` returns a hash representing a Jekyll site's `_config.yml` file. This can be loaded from a local YAML fixture, or provided directly as a hash.
+
+Each call returns the resolved hash and merges it into the buffer. The return value is useful if you want to combine this config with another one, or save it for reuse. Otherwise, the config is just buffered for use the next time you run `jekyll_build`.
 
 When calling `jekyll_build`, if `config:` is omitted and no blueprint is passed, the buffered value from `jekyll_config` is used. Either way, the buffer is then flushed.
 
-Safety rule:
 
-- user-provided `source` and `destination` config keys are ignored.
-- the harness always enforces its own temporary `source`/`destination` paths.
-- a warning is emitted when either key is provided.
+## `jekyll_files`
 
-### `jekyll_files { ... }`
-
-Use this helper to specify the files within the test Jekyll site. Builds nested file hashes with DSL methods and appends result to the internal files buffer.
+Use this helper to specify the files within the test Jekyll site. A DSL is available to build nested file hashes.
 
 ```ruby
 files = jekyll_files do
@@ -154,13 +156,14 @@ end
   - `Array` (joined with newlines)
   - `Hash` (YAML-dumped)
 
-Each `jekyll_files` call both returns the generated hash and merges it into the internal files buffer. The returned hash could be passed to `jekyll_build` or `jekyll_blueprint`.
+Each `jekyll_files` call both returns the generated hash of files/folders, and merges it into the internal files buffer. The returned hash could be passed to `jekyll_build` or `jekyll_blueprint`.
 
 When calling `jekyll_build`, if `files:` is omitted and no blueprint is passed, the buffered value from `jekyll_files` is used. Either way, the buffer is then flushed.
 
-### `jekyll_blueprint(config:, files:)`
 
-Creates a reusable blueprint object that stores config and file hashes for composition.
+## `jekyll_blueprint`
+
+Creates a reusable blueprint object that stores config and files for composition.
 
 ```ruby
 base_blueprint = jekyll_blueprint(
@@ -174,14 +177,13 @@ base_blueprint = jekyll_blueprint(
 
 A blueprint can be passed as the first parameter of `jekyll_build`. If `config` or `files` are also passed, these are merged over the blueprint.
 
-Passing a blueprint also disables buffered `jekyll_config`/`jekyll_files` input for that build.
 
-### `jekyll_merge(base, new)`
+## `jekyll_merge(base, new)`
 
 Used for deep merges:
 
-- Hash + Hash => deep hash merge
-- JekyllBlueprint + JekyllBlueprint => new merged blueprint.
+* Hash + Hash performs a simple deep hash merge.
+* JekyllBlueprint + JekyllBlueprint merges the config/files from one blueprint over another, returning a new merged blueprint.
 
 
 ## Example
@@ -189,7 +191,7 @@ Used for deep merges:
 ```ruby
 RSpec.describe 'my plugin integration' do
   it 'renders expected output' do
-    jekyll_config(file: 'spec/fixtures/jekyll/base_config.yml')
+    jekyll_config(file: 'spec/fixtures/jekyll/base_config.yml') # buffered
 
     jekyll_files do
       folder '_layouts' do
@@ -204,9 +206,9 @@ RSpec.describe 'my plugin integration' do
           contents('Hello')
         end
       end
-    end
+    end # buffered
 
-    jekyll_build do |site, files|
+    jekyll_build do |site, files| # builds with that config and those files
       post = site.collections.fetch('posts').docs.first
       html = files.read('docs/demo.html')
       expect(post).not_to be_nil
